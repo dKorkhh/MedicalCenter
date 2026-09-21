@@ -1,0 +1,156 @@
+services:
+  reception-db:
+    image: ${MONGO_IMAGE}
+    container_name: reception-db
+    restart: always
+    ports:
+      - "${RECEPTION_DB_PORT}:27017"
+    volumes:
+      - reception_data:/data/db
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  billing-db:
+    image: ${MONGO_IMAGE}
+    container_name: billing-db
+    restart: always
+    ports:
+      - "${BILLING_DB_PORT}:27017"
+    volumes:
+      - billing_data:/data/db
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  medical-records-db:
+    image: ${MONGO_IMAGE}
+    container_name: medical-records-db
+    restart: always
+    ports:
+      - "${MEDICAL_RECORDS_DB_PORT}:27017"
+    volumes:
+      - medical_records_data:/data/db
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  notification-db:
+    image: ${MONGO_IMAGE}
+    container_name: notification-db
+    restart: always
+    ports:
+      - "${NOTIFICATION_DB_PORT}:27017"
+    volumes:
+      - notification_data:/data/db
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  reception-service:
+    build:
+      context: ./Reception
+      dockerfile: Dockerfile
+    container_name: reception-service
+    restart: always
+    ports:
+      - "${RECEPTION_SERVER_PORT}:8081"
+    environment:
+      SERVER_PORT: 8081
+      SPRING_MONGODB_URI: mongodb://reception-db:27017/${RECEPTION_DB_NAME}
+      SPRING_DATA_MONGODB_URI: mongodb://reception-db:27017/${RECEPTION_DB_NAME}
+      RECEPTION_MONGO_URI: mongodb://reception-db:27017/${RECEPTION_DB_NAME}
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,org.springframework.boot.jpa.autoconfigure.HibernateJpaAutoConfiguration
+    depends_on:
+      reception-db:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+  billing-service:
+    build:
+      context: ./Billing
+      dockerfile: Dockerfile
+    container_name: billing-service
+    restart: always
+    ports:
+      - "${BILLING_SERVER_PORT}:8082"
+    environment:
+      SERVER_PORT: 8082
+      SPRING_MONGODB_URI: mongodb://billing-db:27017/${BILLING_DB_NAME}
+      SPRING_DATA_MONGODB_URI: mongodb://billing-db:27017/${BILLING_DB_NAME}
+      BILLING_MONGO_URI: mongodb://billing-db:27017/${BILLING_DB_NAME}
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,org.springframework.boot.jpa.autoconfigure.HibernateJpaAutoConfiguration
+    depends_on:
+      billing-db:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+  medical-records-service:
+    build:
+      context: ./MedicalRecords
+      dockerfile: Dockerfile
+    container_name: medical-records-service
+    restart: always
+    ports:
+      - "${MEDICAL_RECORDS_SERVER_PORT}:8083"
+    environment:
+      SERVER_PORT: 8083
+      SPRING_MONGODB_URI: mongodb://medical-records-db:27017/${MEDICAL_RECORDS_DB_NAME}
+      SPRING_DATA_MONGODB_URI: mongodb://medical-records-db:27017/${MEDICAL_RECORDS_DB_NAME}
+      MEDICAL_RECORDS_MONGO_URI: mongodb://medical-records-db:27017/${MEDICAL_RECORDS_DB_NAME}
+    depends_on:
+      medical-records-db:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+  notification-service:
+    build:
+      context: ./Notification
+      dockerfile: Dockerfile
+    container_name: notification-service
+    restart: always
+    ports:
+      - "${NOTIFICATION_SERVER_PORT}:8084"
+    environment:
+      SERVER_PORT: 8084
+      SPRING_MONGODB_URI: mongodb://notification-db:27017/${NOTIFICATION_DB_NAME}
+      SPRING_DATA_MONGODB_URI: mongodb://notification-db:27017/${NOTIFICATION_DB_NAME}
+      NOTIFICATION_MONGO_URI: mongodb://notification-db:27017/${NOTIFICATION_DB_NAME}
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+networks:
+  medical-network:
+    driver: bridge
+
+volumes:
+  reception_data:
+  billing_data:
+  medical_records_data:
+  notification_data:
