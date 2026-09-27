@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - secrets.yaml
+  - reception-configmap.yaml
+  - billing-configmap.yaml
+  - medical-records-configmap.yaml
+  - notification-configmap.yaml
+  - reception-db.yaml
+  - billing-db.yaml
+  - medical-records-db.yaml
+  - notification-db.yaml
+  - reception-deployment.yaml
+  - reception-service.yaml
+  - billing-deployment.yaml
+  - billing-service.yaml
+  - medical-records-deployment.yaml
+  - medical-records-service.yaml
+  - notification-deployment.yaml
+  - notification-service.yaml
+
