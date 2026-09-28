@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: medical-records-db-pvc
+  namespace: medical-center
+  labels:
+    app: medical-records-db
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medical-records-db
+  namespace: medical-center
+  labels:
+    app: medical-records-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medical-records-db
+  template:
+    metadata:
+      labels:
+        app: medical-records-db
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7.0
+          ports:
+            - containerPort: 27017
+              name: mongodb
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: medical-records-db-storage
+              mountPath: /data/db
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - db.adminCommand('ping')
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - db.adminCommand('ping')
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+      volumes:
+        - name: medical-records-db-storage
+          persistentVolumeClaim:
+            claimName: medical-records-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: medical-records-db
+  namespace: medical-center
+  labels:
+    app: medical-records-db
+spec:
+  type: ClusterIP
+  selector:
+    app: medical-records-db
+  ports:
+    - port: 27017
+      targetPort: 27017
+      name: mongodb
