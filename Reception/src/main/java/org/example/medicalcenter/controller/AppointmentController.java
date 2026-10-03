@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.medicalcenter.dto.AppointmentResponse;
 import org.example.medicalcenter.dto.CreateAppointmentRequest;
 import org.example.medicalcenter.service.AppointmentService;
+import org.example.medicalcenter.client.BillingClient;
+import org.example.medicalcenter.client.dto.InvoiceDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +24,7 @@ import java.util.List;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
+    private final BillingClient billingClient;
 
     @PostMapping
     public ResponseEntity<AppointmentResponse> scheduleAppointment(@RequestBody CreateAppointmentRequest request) {
@@ -41,5 +44,13 @@ public class AppointmentController {
             return ResponseEntity.ok(appointmentService.getAppointmentsByPatientId(patientId));
         }
         return ResponseEntity.ok(appointmentService.getAllAppointments());
+    }
+
+    @GetMapping("/invoices/{invoiceId}")
+    public ResponseEntity<InvoiceDto> getInvoiceDetails(
+            @PathVariable String invoiceId,
+            @RequestParam(value = "delay", required = false, defaultValue = "0") long delay) {
+        InvoiceDto invoice = billingClient.getInvoiceById(invoiceId, delay);
+        return ResponseEntity.ok(invoice);
     }
 }
