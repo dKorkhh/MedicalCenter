@@ -42,4 +42,10 @@ public class InvoiceController {
         }
         return ResponseEntity.ok(invoiceService.getAllInvoices());
     }
+
+    @PostMapping("/batch")
+    public ResponseEntity<List<InvoiceResponse>> getInvoicesBatch(@RequestBody List<String> ids) {
+        List<InvoiceResponse> invoices = invoiceService.getInvoicesByIds(ids);
+        return ResponseEntity.ok(invoices);
+    }
 }
