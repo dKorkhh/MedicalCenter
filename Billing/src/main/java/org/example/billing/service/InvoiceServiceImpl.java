@@ -56,6 +56,25 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .toList();
     }
 
+    @Override
+    public List<InvoiceResponse> getInvoicesByIds(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return invoiceRepository.findByIdIn(ids).stream()
+                .map(invoice -> new InvoiceResponse(
+                        invoice.getId(),
+                        invoice.getAppointmentId(),
+                        invoice.getPatientId(),
+                        invoice.getAmount(),
+                        invoice.getCurrency(),
+                        invoice.getPaymentStatus(),
+                        invoice.getIssuedAt(),
+                        invoice.getPaidAt()
+                ))
+                .toList();
+    }
+
     private InvoiceResponse mapToResponse(Invoice invoice) {
         return new InvoiceResponse(
                 invoice.getId(),
