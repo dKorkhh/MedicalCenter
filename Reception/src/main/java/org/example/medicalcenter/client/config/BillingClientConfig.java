@@ -16,7 +16,7 @@ import java.time.Duration;
 @Configuration
 public class BillingClientConfig {
 
-    @Value("${billing.service.url")
+    @Value("${billing.service.url}")
     private String billingServiceUrl;
 
     @Bean
