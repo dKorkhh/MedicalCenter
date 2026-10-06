@@ -2,6 +2,7 @@ package org.example.billing.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.billing.dto.CreateInvoiceRequest;
+import org.example.billing.exception.ApiProblemException;
 import org.example.billing.dto.InvoiceResponse;
 import org.example.billing.model.Invoice;
 import org.example.billing.repository.InvoiceRepository;
@@ -15,6 +16,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class InvoiceServiceImpl implements InvoiceService {
+
+    public static final int MAX_BATCH_SIZE = 100;
 
     private final InvoiceRepository invoiceRepository;
 
@@ -61,17 +64,13 @@ public class InvoiceServiceImpl implements InvoiceService {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
-        return invoiceRepository.findByIdIn(ids).stream()
-                .map(invoice -> new InvoiceResponse(
-                        invoice.getId(),
-                        invoice.getAppointmentId(),
-                        invoice.getPatientId(),
-                        invoice.getAmount(),
-                        invoice.getCurrency(),
-                        invoice.getPaymentStatus(),
-                        invoice.getIssuedAt(),
-                        invoice.getPaidAt()
-                ))
+        List<String> distinctIds = ids.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        if (distinctIds.size() > MAX_BATCH_SIZE) {
+            throw new ApiProblemException(HttpStatus.BAD_REQUEST, "batch-too-large", "Batch too large",
+                    "At most " + MAX_BATCH_SIZE + " ids are allowed per batch request, got " + distinctIds.size() + ".");
+        }
+        return invoiceRepository.findByIdIn(distinctIds).stream()
+                .map(this::mapToResponse)
                 .toList();
     }
 
