@@ -81,8 +81,12 @@ services:
       SPRING_DATA_MONGODB_URI: mongodb://reception-db:27017/${RECEPTION_DB_NAME}
       RECEPTION_MONGO_URI: mongodb://reception-db:27017/${RECEPTION_DB_NAME}
       SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,org.springframework.boot.jpa.autoconfigure.HibernateJpaAutoConfiguration
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       reception-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     networks:
       - medical-network
@@ -139,9 +143,58 @@ services:
       SPRING_MONGODB_URI: mongodb://notification-db:27017/${NOTIFICATION_DB_NAME}
       SPRING_DATA_MONGODB_URI: mongodb://notification-db:27017/${NOTIFICATION_DB_NAME}
       NOTIFICATION_MONGO_URI: mongodb://notification-db:27017/${NOTIFICATION_DB_NAME}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       notification-db:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - medical-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: medical-kafka
+    restart: always
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:29092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - medical-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: medical-kafka-ui
+    restart: always
+    ports:
+      - "${KAFKA_UI_PORT:-8085}:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: medical-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
     networks:
       - medical-network
 
