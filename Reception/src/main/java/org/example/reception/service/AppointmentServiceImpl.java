@@ -17,6 +17,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.reception.event.AppointmentBookedEvent;
+import org.example.reception.outbox.OutboxMessage;
+import org.example.reception.outbox.OutboxMessageRepository;
+import org.example.reception.outbox.OutboxStatus;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,8 +33,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final BillingServiceAdapter billingServiceAdapter;
+    private final OutboxMessageRepository outboxMessageRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
+    @Transactional
     public AppointmentResponse scheduleAppointment(CreateAppointmentRequest request) {
         Appointment appointment = Appointment.builder()
                 .patientId(request.patientId())
@@ -41,6 +52,41 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .build();
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        String eventId = UUID.randomUUID().toString();
+        AppointmentBookedEvent event = AppointmentBookedEvent.builder()
+                .eventId(eventId)
+                .eventType("APPOINTMENT_BOOKED")
+                .appointmentId(savedAppointment.getId())
+                .patientId(savedAppointment.getPatientId())
+                .patientFullName(savedAppointment.getPatientFullName())
+                .patientEmail(request.patientEmail() != null ? request.patientEmail() : ("patient-" + savedAppointment.getPatientId() + "@medicalcenter.local"))
+                .doctorId(savedAppointment.getDoctorId())
+                .doctorFullName(savedAppointment.getDoctorFullName())
+                .appointmentDateTime(savedAppointment.getAppointmentDateTime())
+                .roomNumber(savedAppointment.getRoomNumber())
+                .invoiceId(savedAppointment.getInvoiceId())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            OutboxMessage outboxMessage = OutboxMessage.builder()
+                    .id(eventId)
+                    .aggregateType("Appointment")
+                    .aggregateId(savedAppointment.getId())
+                    .eventType("APPOINTMENT_BOOKED")
+                    .payload(payload)
+                    .status(OutboxStatus.PENDING)
+                    .createdAt(LocalDateTime.now())
+                    .retryCount(0)
+                    .build();
+
+            outboxMessageRepository.save(outboxMessage);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to serialize outbox event: " + ex.getMessage(), ex);
+        }
+
         return mapToResponse(savedAppointment);
     }
 
