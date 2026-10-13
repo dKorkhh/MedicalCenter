@@ -22,6 +22,8 @@ import java.util.List;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final org.example.notification.repository.ProcessedMessageRepository processedMessageRepository;
+    private final org.example.notification.repository.NotificationDeadLetterRepository notificationDeadLetterRepository;
 
     @PostMapping
     public ResponseEntity<NotificationResponse> sendNotification(@RequestBody SendNotificationRequest request) {
@@ -41,5 +43,15 @@ public class NotificationController {
             return ResponseEntity.ok(notificationService.getNotificationsByRecipientEmail(recipientEmail));
         }
         return ResponseEntity.ok(notificationService.getAllNotifications());
+    }
+
+    @GetMapping("/processed-events")
+    public ResponseEntity<List<org.example.notification.model.ProcessedMessage>> getProcessedEvents() {
+        return ResponseEntity.ok(processedMessageRepository.findAll());
+    }
+
+    @GetMapping("/dead-letters")
+    public ResponseEntity<List<org.example.notification.model.NotificationDeadLetter>> getDeadLetters() {
+        return ResponseEntity.ok(notificationDeadLetterRepository.findAll());
     }
 }
