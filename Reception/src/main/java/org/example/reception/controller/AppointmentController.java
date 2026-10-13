@@ -31,6 +31,16 @@ public class AppointmentController {
     private final AppointmentService appointmentService;
     private final BillingServiceAdapter billingServiceAdapter;
     private final IdempotencyService idempotencyService;
+    private final org.example.reception.outbox.OutboxMessageRepository outboxMessageRepository;
+
+    @GetMapping("/outbox")
+    public ResponseEntity<List<org.example.reception.outbox.OutboxMessage>> getOutboxMessages(
+            @RequestParam(required = false) org.example.reception.outbox.OutboxStatus status) {
+        if (status != null) {
+            return ResponseEntity.ok(outboxMessageRepository.findByStatus(status));
+        }
+        return ResponseEntity.ok(outboxMessageRepository.findAll());
+    }
 
     @PostMapping
     public ResponseEntity<AppointmentResponse> scheduleAppointment(
