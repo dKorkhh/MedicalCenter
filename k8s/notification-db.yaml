@@ -21,6 +21,8 @@ metadata:
     app: notification-db
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: notification-db
@@ -46,25 +48,15 @@ spec:
             - name: notification-db-storage
               mountPath: /data/db
           livenessProbe:
-            exec:
-              command:
-                - mongosh
-                - --quiet
-                - --eval
-                - db.adminCommand('ping')
-            initialDelaySeconds: 15
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 5
             periodSeconds: 10
-            timeoutSeconds: 5
           readinessProbe:
-            exec:
-              command:
-                - mongosh
-                - --quiet
-                - --eval
-                - db.adminCommand('ping')
-            initialDelaySeconds: 10
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 2
             periodSeconds: 5
-            timeoutSeconds: 5
       volumes:
         - name: notification-db-storage
           persistentVolumeClaim:

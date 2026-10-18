@@ -19,7 +19,7 @@ server:
 
 billing:
   service:
-    url: http://localhost:8082
+    url: ${BILLING_SERVICE_URL:http://localhost:8082}
 
 management:
   endpoints:

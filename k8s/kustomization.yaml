@@ -20,4 +20,5 @@ resources:
   - medical-records-service.yaml
   - notification-deployment.yaml
   - notification-service.yaml
+  - kafka.yaml
 
