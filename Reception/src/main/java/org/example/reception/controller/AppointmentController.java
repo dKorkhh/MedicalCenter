@@ -9,6 +9,7 @@ import org.example.reception.dto.AppointmentResponse;
 import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.idempotency.IdempotencyService;
 import org.example.reception.idempotency.IdempotentResult;
+import org.example.reception.metrics.AppointmentMetricsService;
 import org.example.reception.service.AppointmentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,7 @@ public class AppointmentController {
     private final BillingServiceAdapter billingServiceAdapter;
     private final IdempotencyService idempotencyService;
     private final org.example.reception.outbox.OutboxMessageRepository outboxMessageRepository;
+    private final AppointmentMetricsService appointmentMetricsService;
 
     @GetMapping("/outbox")
     public ResponseEntity<List<org.example.reception.outbox.OutboxMessage>> getOutboxMessages(
@@ -57,6 +59,7 @@ public class AppointmentController {
         if (result.replayed()) {
             response.header("Idempotent-Replayed", "true");
         }
+        appointmentMetricsService.recordAppointment();
         return response.body(result.value());
     }
 
