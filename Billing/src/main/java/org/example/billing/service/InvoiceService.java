@@ -14,4 +14,6 @@ public interface InvoiceService {
     List<InvoiceResponse> getAllInvoices();
 
     List<InvoiceResponse> getInvoicesByPatientId(String patientId);
+
+    List<InvoiceResponse> getInvoicesByIds(List<String> ids);
 }

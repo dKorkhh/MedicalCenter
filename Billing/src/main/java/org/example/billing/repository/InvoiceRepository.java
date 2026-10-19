@@ -12,4 +12,6 @@ public interface InvoiceRepository extends MongoRepository<Invoice, String> {
     List<Invoice> findByPatientId(String patientId);
 
     List<Invoice> findByAppointmentId(String appointmentId);
+
+    List<Invoice> findByIdIn(List<String> ids);
 }
