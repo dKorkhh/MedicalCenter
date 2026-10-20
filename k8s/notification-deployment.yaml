@@ -6,7 +6,7 @@ metadata:
   labels:
     app: notification-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: notification-service
@@ -24,7 +24,7 @@ spec:
         runAsUser: 10001
       containers:
       - name: notification-service
-        image: medical-notification:latest
+        image: localhost/medical-notification:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -35,6 +35,10 @@ spec:
         env:
           - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
             value: kafka:9092
+          - name: MAIL_USERNAME
+            value: "athleticore28@gmail.com"
+          - name: MAIL_PASSWORD
+            value: "rttq kvzi vjqk jwpx"
           - name: MAIL_USERNAME
             valueFrom:
               secretKeyRef:

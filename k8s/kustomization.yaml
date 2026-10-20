@@ -21,4 +21,6 @@ resources:
   - notification-deployment.yaml
   - notification-service.yaml
   - kafka.yaml
-
+  - prometheus-configmap.yaml
+  - prometheus-deployment.yaml
+  - alertmanager-deployment.yaml

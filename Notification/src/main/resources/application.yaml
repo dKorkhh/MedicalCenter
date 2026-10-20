@@ -2,18 +2,28 @@ spring:
   application:
     name: notification-service
   config:
-    import:
-      - optional:file:.env[.properties]
-      - optional:file:../.env[.properties]
+    import: "optional:file:.env[.properties],optional:file:../.env[.properties]"
   mvc:
     problemdetails:
       enabled: true
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}"
     consumer:
       group-id: notification-service-group
-  mongodb:
-    uri: ${NOTIFICATION_MONGO_URI:mongodb://localhost:27017/medical_notification}
+  data:
+    mongodb:
+      uri: ${NOTIFICATION_MONGO_URI:mongodb://localhost:27017/medical_notification}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   mail:
     host: smtp.gmail.com
     port: 587

@@ -17,21 +17,25 @@ import java.util.List;
 public class MedicalRecordServiceImpl implements MedicalRecordService {
 
     private final MedicalRecordRepository medicalRecordRepository;
+    private final MedicalRecordMetricsService metricsService;
 
     @Override
     public MedicalRecordResponse createMedicalRecord(CreateMedicalRecordRequest request) {
-        MedicalRecord medicalRecord = MedicalRecord.builder()
-                .patientId(request.patientId())
-                .doctorId(request.doctorId())
-                .appointmentId(request.appointmentId())
-                .diagnosis(request.diagnosis())
-                .prescription(request.prescription())
-                .doctorNotes(request.doctorNotes())
-                .recordDate(LocalDateTime.now())
-                .build();
+        return metricsService.recordCreationTimer().record(() -> {
+            MedicalRecord medicalRecord = MedicalRecord.builder()
+                    .patientId(request.patientId())
+                    .doctorId(request.doctorId())
+                    .appointmentId(request.appointmentId())
+                    .diagnosis(request.diagnosis())
+                    .prescription(request.prescription())
+                    .doctorNotes(request.doctorNotes())
+                    .recordDate(LocalDateTime.now())
+                    .build();
 
-        MedicalRecord savedRecord = medicalRecordRepository.save(medicalRecord);
-        return mapToResponse(savedRecord);
+            MedicalRecord savedRecord = medicalRecordRepository.save(medicalRecord);
+            metricsService.createdRecordsCounter().increment();
+            return mapToResponse(savedRecord);
+        });
     }
 
     @Override

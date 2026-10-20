@@ -6,7 +6,7 @@ metadata:
   labels:
     app: billing-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: billing-service
@@ -24,7 +24,7 @@ spec:
         runAsUser: 10001
       containers:
       - name: billing-service
-        image: medical-billing:latest
+        image: localhost/medical-billing:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

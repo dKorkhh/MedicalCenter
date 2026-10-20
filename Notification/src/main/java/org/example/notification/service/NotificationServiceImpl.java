@@ -25,19 +25,20 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public NotificationResponse sendNotification(SendNotificationRequest request) {
         LongTaskTimer.Sample sample = sendingMetricsService.reportTimer().start();
-
-        if (request.recipientEmail() != null && !request.recipientEmail().isBlank()) {
-            emailService.sendEmail(
-                    request.recipientEmail(),
-                    request.messageTitle(),
-                    request.messageContent()
-            );
+        try {
+            if (request.recipientEmail() != null && !request.recipientEmail().isBlank()) {
+                emailService.sendEmail(
+                        request.recipientEmail(),
+                        request.messageTitle(),
+                        request.messageContent()
+                );
+            }
+            Notification notification = notificationMapper.toEntity(request);
+            Notification savedNotification = notificationRepository.save(notification);
+            return notificationMapper.toResponse(savedNotification);
+        } finally {
+            sample.stop();
         }
-        Notification notification = notificationMapper.toEntity(request);
-        Notification savedNotification = notificationRepository.save(notification);
-
-        sample.stop();
-        return notificationMapper.toResponse(savedNotification);
     }
 
     @Override

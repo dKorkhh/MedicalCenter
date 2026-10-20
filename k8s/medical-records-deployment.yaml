@@ -6,7 +6,7 @@ metadata:
   labels:
     app: medical-records-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: medical-records-service
@@ -24,7 +24,7 @@ spec:
         runAsUser: 10001
       containers:
       - name: medical-records-service
-        image: medical-records:latest
+        image: localhost/medical-records:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

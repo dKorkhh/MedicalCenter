@@ -6,7 +6,7 @@ metadata:
   labels:
     app: reception-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: reception-service
@@ -24,7 +24,7 @@ spec:
         runAsUser: 10001
       containers:
       - name: reception-service
-        image: medical-reception:latest
+        image: localhost/medical-reception:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -43,8 +43,8 @@ spec:
           httpGet:
             path: /actuator/health/liveness
             port: 8081
-          failureThreshold: 50
-          periodSeconds: 2
+          failureThreshold: 60
+          periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness

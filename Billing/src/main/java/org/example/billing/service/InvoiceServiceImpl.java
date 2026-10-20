@@ -28,6 +28,12 @@ public class InvoiceServiceImpl implements InvoiceService {
         return metricsService.processing().record(() -> {
             Invoice invoice = invoiceMapper.toEntity(request);
             Invoice savedInvoice = invoiceRepository.save(invoice);
+            if (savedInvoice.getAmount() != null) {
+                metricsService.amount().record(savedInvoice.getAmount().doubleValue());
+            }
+            if ("PENDING".equalsIgnoreCase(savedInvoice.getPaymentStatus())) {
+                metricsService.pending().incrementAndGet();
+            }
             return invoiceMapper.toResponse(savedInvoice);
         });
     }

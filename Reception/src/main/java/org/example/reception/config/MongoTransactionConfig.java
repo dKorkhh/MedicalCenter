@@ -9,10 +9,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @EnableTransactionManagement
+@ConditionalOnProperty(name = "spring.data.mongodb.transaction.enabled", havingValue = "true", matchIfMissing = true)
 public class MongoTransactionConfig {
 
     @Bean
-    @ConditionalOnProperty(name = "spring.data.mongodb.transaction.enabled", havingValue = "true", matchIfMissing = true)
     public MongoTransactionManager transactionManager(MongoDatabaseFactory databaseFactory) {
         return new MongoTransactionManager(databaseFactory);
     }
