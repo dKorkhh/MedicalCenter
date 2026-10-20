@@ -1,15 +1,16 @@
 package org.example.notification.service;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.RequiredArgsConstructor;
 import org.example.notification.dto.NotificationResponse;
 import org.example.notification.dto.SendNotificationRequest;
+import org.example.notification.mapper.NotificationMapper;
 import org.example.notification.model.Notification;
 import org.example.notification.repository.NotificationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -17,27 +18,32 @@ import java.util.List;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationMapper notificationMapper;
+    private final EmailService emailService;
+    private final SendingMetricsService sendingMetricsService;
 
     @Override
     public NotificationResponse sendNotification(SendNotificationRequest request) {
-        Notification notification = Notification.builder()
-                .recipientEmail(request.recipientEmail())
-                .recipientPhone(request.recipientPhone())
-                .notificationType(request.notificationType())
-                .messageTitle(request.messageTitle())
-                .messageContent(request.messageContent())
-                .deliveryStatus("SENT")
-                .sentAt(LocalDateTime.now())
-                .build();
+        LongTaskTimer.Sample sample = sendingMetricsService.reportTimer().start();
 
+        if (request.recipientEmail() != null && !request.recipientEmail().isBlank()) {
+            emailService.sendEmail(
+                    request.recipientEmail(),
+                    request.messageTitle(),
+                    request.messageContent()
+            );
+        }
+        Notification notification = notificationMapper.toEntity(request);
         Notification savedNotification = notificationRepository.save(notification);
-        return mapToResponse(savedNotification);
+
+        sample.stop();
+        return notificationMapper.toResponse(savedNotification);
     }
 
     @Override
     public NotificationResponse getNotificationById(String id) {
         return notificationRepository.findById(id)
-                .map(this::mapToResponse)
+                .map(notificationMapper::toResponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found with id: " + id));
     }
 
@@ -45,7 +51,7 @@ public class NotificationServiceImpl implements NotificationService {
     public List<NotificationResponse> getAllNotifications() {
         return notificationRepository.findAll()
                 .stream()
-                .map(this::mapToResponse)
+                .map(notificationMapper::toResponse)
                 .toList();
     }
 
@@ -53,20 +59,7 @@ public class NotificationServiceImpl implements NotificationService {
     public List<NotificationResponse> getNotificationsByRecipientEmail(String recipientEmail) {
         return notificationRepository.findByRecipientEmail(recipientEmail)
                 .stream()
-                .map(this::mapToResponse)
+                .map(notificationMapper::toResponse)
                 .toList();
-    }
-
-    private NotificationResponse mapToResponse(Notification notification) {
-        return new NotificationResponse(
-                notification.getId(),
-                notification.getRecipientEmail(),
-                notification.getRecipientPhone(),
-                notification.getNotificationType(),
-                notification.getMessageTitle(),
-                notification.getMessageContent(),
-                notification.getDeliveryStatus(),
-                notification.getSentAt()
-        );
     }
 }

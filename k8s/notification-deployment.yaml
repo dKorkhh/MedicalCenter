@@ -35,6 +35,16 @@ spec:
         env:
           - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
             value: kafka:9092
+          - name: MAIL_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: medical-secrets
+                key: MAIL_USERNAME
+          - name: MAIL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: medical-secrets
+                key: MAIL_PASSWORD
         resources:
           requests:
             cpu: 250m
