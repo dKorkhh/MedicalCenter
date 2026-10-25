@@ -24,8 +24,8 @@ spec:
         runAsUser: 10001
       containers:
       - name: notification-service
-        image: localhost/medical-notification:latest
-        imagePullPolicy: IfNotPresent
+        image: notification-service:latest
+        imagePullPolicy: Never
         ports:
         - name: http
           containerPort: 8084
@@ -35,10 +35,6 @@ spec:
         env:
           - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
             value: kafka:9092
-          - name: MAIL_USERNAME
-            value: "athleticore28@gmail.com"
-          - name: MAIL_PASSWORD
-            value: "rttq kvzi vjqk jwpx"
           - name: MAIL_USERNAME
             valueFrom:
               secretKeyRef:
@@ -66,14 +62,18 @@ spec:
           httpGet:
             path: /actuator/health/liveness
             port: 8084
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
             port: 8084
-          initialDelaySeconds: 5
-          periodSeconds: 5
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 5
         lifecycle:
           preStop:
             exec:

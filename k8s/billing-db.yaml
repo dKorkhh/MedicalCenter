@@ -48,15 +48,20 @@ spec:
           volumeMounts:
             - name: billing-db-storage
               mountPath: /data/db
+          startupProbe:
+            tcpSocket:
+              port: 27017
+            failureThreshold: 120
+            periodSeconds: 5
           livenessProbe:
             tcpSocket:
               port: 27017
-            initialDelaySeconds: 5
+            initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 27017
-            initialDelaySeconds: 2
+            initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
         - name: billing-db-storage

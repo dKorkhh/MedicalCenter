@@ -13,3 +13,5 @@ data:
   SPRING_DATA_MONGODB_URI: "mongodb://medical-records-db:27017/medical_records"
   SPRING_MONGODB_URI: "mongodb://medical-records-db:27017/medical_records"
   MEDICAL_RECORDS_SERVICE_URL: "http://medical-records-service:8083"
+  OTEL_COLLECTOR_ENDPOINT: "http://otel-collector.default.svc.cluster.local:4318"
+  JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1"

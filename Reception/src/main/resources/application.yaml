@@ -10,6 +10,8 @@ spring:
         enabled: ${MONGODB_TRANSACTION_ENABLED:true}
   kafka:
     bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}"
+    template:
+      observation-enabled: true
   mvc:
     problemdetails:
       enabled: true
@@ -21,7 +23,28 @@ billing:
   service:
     url: ${BILLING_SERVICE_URL:http://localhost:8082}
 
+medical-records:
+  service:
+    url: ${MEDICAL_RECORDS_SERVICE_URL:http://localhost:8083}
+
 management:
+  tracing:
+    sampling:
+      probability: 1.0
+    propagation:
+      type: w3c
+  opentelemetry:
+    resource-attributes:
+      service.namespace: medical-center
+      deployment.environment: k8s
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://localhost:4318}/v1/traces
+  otlp:
+    metrics:
+      export:
+        enabled: false
   endpoints:
     web:
       exposure:
@@ -85,3 +108,8 @@ app:
       enabled: ${OUTBOX_PUBLISHER_ENABLED:true}
     polling-interval-ms: ${OUTBOX_POLLING_INTERVAL_MS:2000}
     max-retries: 5
+
+logging:
+  structured:
+    format:
+      console: logstash
