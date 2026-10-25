@@ -24,3 +24,8 @@ resources:
   - prometheus-configmap.yaml
   - prometheus-deployment.yaml
   - alertmanager-deployment.yaml
+  - tempo.yaml
+  - loki.yaml
+  - promtail.yaml
+  - otel-collector.yaml
+  - grafana.yaml

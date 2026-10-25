@@ -47,15 +47,20 @@ spec:
           volumeMounts:
             - name: medical-records-db-storage
               mountPath: /data/db
+          startupProbe:
+            tcpSocket:
+              port: 27017
+            failureThreshold: 30
+            periodSeconds: 5
           livenessProbe:
             tcpSocket:
               port: 27017
-            initialDelaySeconds: 5
+            initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             tcpSocket:
               port: 27017
-            initialDelaySeconds: 2
+            initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
         - name: medical-records-db-storage

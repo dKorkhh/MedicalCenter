@@ -15,3 +15,5 @@ data:
   NOTIFICATION_SERVICE_URL: "http://notification-service:8084"
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
   SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  OTEL_COLLECTOR_ENDPOINT: "http://otel-collector.default.svc.cluster.local:4318"
+  JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
