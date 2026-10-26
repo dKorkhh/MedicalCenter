@@ -1,17 +1,16 @@
 package org.example.notification.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.notification.event.AppointmentBookedEvent;
 import org.example.notification.model.Notification;
-import org.example.notification.model.NotificationDeadLetter;
-import org.example.notification.model.ProcessedMessage;
-import org.example.notification.repository.NotificationDeadLetterRepository;
-import org.example.notification.repository.NotificationRepository;
-import org.example.notification.repository.ProcessedMessageRepository;
+import org.example.notification.service.AppointmentNotificationProcessor;
+import org.example.notification.service.NotificationDeadLetterRecorder;
+import org.example.notification.tracing.KafkaTraceContextExtractor;
+import org.example.notification.tracing.TraceContextSession;
+import org.springframework.kafka.annotation.BackOff;
 import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -19,20 +18,16 @@ import org.springframework.kafka.retrytopic.DltStrategy;
 import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.kafka.annotation.BackOff;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AppointmentEventConsumer {
 
-    private final NotificationRepository notificationRepository;
-    private final ProcessedMessageRepository processedMessageRepository;
-    private final NotificationDeadLetterRepository notificationDeadLetterRepository;
-    private final ObjectMapper objectMapper;
+    private final AppointmentNotificationProcessor notificationProcessor;
+    private final KafkaTraceContextExtractor traceContextExtractor;
+    private final NotificationDeadLetterRecorder deadLetterRecorder;
 
     @Getter
     @Setter
@@ -43,47 +38,49 @@ public class AppointmentEventConsumer {
             dltStrategy = DltStrategy.FAIL_ON_ERROR, include = {RuntimeException.class})
     @KafkaListener(topics = "${app.kafka.topics.appointment-booked:medical.appointment.booked}",
             groupId = "${spring.kafka.consumer.group-id:notification-service-group}")
-    public void handleAppointmentBooked(AppointmentBookedEvent event, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic, @Header(KafkaHeaders.OFFSET) long offset) {
-        log.info("Received event: id={}, topic={}, offset={}", event.getEventId(), topic, offset);
+    public void handleAppointmentBooked(
+            AppointmentBookedEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            @Header(name = "traceparent", required = false) Object traceparentHeader) {
 
-        if (event.getEventId() != null && processedMessageRepository.existsById(event.getEventId())) {
-            log.warn("Idempotent Consumer: Duplicate event detected (eventId={}). Skipping business execution.", event.getEventId());
-            return;
+        String traceparent = traceContextExtractor.extractTraceparent(traceparentHeader);
+
+        try (TraceContextSession session = traceContextExtractor.startConsumerSpan("kafka-appointment-booked-consumer", traceparent)) {
+            log.info("Received event: id={}, topic={}, offset={}, traceparent={}",
+                    event.getEventId(), topic, offset, traceparent);
+
+            if (notificationProcessor.isAlreadyProcessed(event.getEventId())) {
+                log.warn("Idempotent Consumer: Duplicate event detected (eventId={}). Skipping business execution.", event.getEventId());
+                return;
+            }
+
+            verifyFailureSimulation(event);
+
+            try {
+                Notification notification = notificationProcessor.processAppointmentBooking(event, topic);
+                log.info("Idempotent Consumer: Successfully processed eventId={}, created notificationId={}",
+                        event.getEventId(), notification.getId());
+            } catch (Exception exception) {
+                session.recordFailure(exception);
+                throw exception;
+            }
         }
+    }
 
+    private void verifyFailureSimulation(AppointmentBookedEvent event) {
         if (simulateFailure || "FAIL_SIMULATION".equals(event.getDoctorId())) {
             log.error("Artificial consumer failure triggered for eventId={}", event.getEventId());
             throw new RuntimeException("Artificial failure triggered for eventId=" + event.getEventId());
         }
-
-        Notification notification = Notification.builder().recipientEmail(event.getPatientEmail() != null ? event.getPatientEmail() : ("patient-" + event.getPatientId() + "@medicalcenter.local")).recipientPhone("+380501234567").notificationType("APPOINTMENT_CONFIRMATION").messageTitle("Запис підтверджено").messageContent(String.format("Шановний(а) %s! Ваш запис до лікаря %s підтверджено на %s. Кабінет: %s", event.getPatientFullName(), event.getDoctorFullName(), event.getAppointmentDateTime(), event.getRoomNumber())).deliveryStatus("SENT").sentAt(LocalDateTime.now()).build();
-
-        notificationRepository.save(notification);
-
-        if (event.getEventId() != null) {
-            ProcessedMessage processedMessage = ProcessedMessage.builder().messageId(event.getEventId()).eventType(event.getEventType()).sourceTopic(topic).processedAt(LocalDateTime.now()).build();
-            processedMessageRepository.save(processedMessage);
-        }
-
-        log.info("Idempotent Consumer: Successfully processed eventId={}, created notificationId={}", event.getEventId(), notification.getId());
     }
 
     @DltHandler
-    public void handleDlt(AppointmentBookedEvent event, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic, @Header(KafkaHeaders.OFFSET) long offset, @Header(name = KafkaHeaders.EXCEPTION_MESSAGE, required = false) String exceptionMessage) {
-        log.error("Dead Letter Topic (DLT) reached: eventId={}, fromTopic={}, offset={}, error={}", event.getEventId(), topic, offset, exceptionMessage);
-
-        try {
-            NotificationDeadLetter deadLetter = NotificationDeadLetter.builder()
-                    .eventId(event.getEventId())
-                    .originalTopic(topic)
-                    .offset(offset)
-                    .errorMessage(exceptionMessage)
-                    .rawPayload(objectMapper.writeValueAsString(event))
-                    .failedAt(LocalDateTime.now()).build();
-            notificationDeadLetterRepository.save(deadLetter);
-            log.info("Recorded DLT failure event to database: eventId={}", event.getEventId());
-        } catch (Exception ex) {
-            log.error("Failed to record DLT failure event: {}", ex.getMessage());
-        }
+    public void handleDlt(
+            AppointmentBookedEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            @Header(name = KafkaHeaders.EXCEPTION_MESSAGE, required = false) String exceptionMessage) {
+        deadLetterRecorder.recordFailure(event, topic, offset, exceptionMessage);
     }
 }
