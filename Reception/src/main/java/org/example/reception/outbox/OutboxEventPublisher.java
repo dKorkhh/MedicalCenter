@@ -2,12 +2,14 @@ package org.example.reception.outbox;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -45,14 +47,19 @@ public class OutboxEventPublisher {
         String key = message.getAggregateId() != null ? message.getAggregateId() : message.getId();
 
         try {
-            kafkaTemplate.send(topic, key, message.getPayload())
+            ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, message.getPayload());
+            if (message.getTraceparent() != null && !message.getTraceparent().isBlank()) {
+                record.headers().add("traceparent", message.getTraceparent().getBytes(StandardCharsets.UTF_8));
+            }
+
+            kafkaTemplate.send(record)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
                             message.setStatus(OutboxStatus.PROCESSED);
                             message.setProcessedAt(LocalDateTime.now());
                             outboxMessageRepository.save(message);
-                            log.info("Outbox message id={} (aggregateId={}) successfully published to topic={}",
-                                    message.getId(), message.getAggregateId(), topic);
+                            log.info("Outbox message id={} (aggregateId={}) successfully published to topic={} with traceparent={}",
+                                    message.getId(), message.getAggregateId(), topic, message.getTraceparent());
                         } else {
                             handleFailure(message, ex);
                         }

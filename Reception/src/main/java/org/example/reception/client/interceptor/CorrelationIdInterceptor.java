@@ -1,5 +1,7 @@
 package org.example.reception.client.interceptor;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -26,13 +28,28 @@ public class CorrelationIdInterceptor implements ClientHttpRequestInterceptor {
             }
             request.getHeaders().add(CORRELATION_ID_HEADER, correlationId);
         }
-        String traceparent = MDC.get(TRACEPARENT_HEADER);
-        if (traceparent != null && !request.getHeaders().containsHeader(TRACEPARENT_HEADER)) {
-            request.getHeaders().add(TRACEPARENT_HEADER, traceparent);
+
+        if (!request.getHeaders().containsHeader(TRACEPARENT_HEADER)) {
+            String traceparent = MDC.get(TRACEPARENT_HEADER);
+            if (traceparent == null || traceparent.isBlank()) {
+                Span currentSpan = Span.current();
+                if (currentSpan != null && currentSpan.getSpanContext().isValid()) {
+                    SpanContext ctx = currentSpan.getSpanContext();
+                    traceparent = String.format("00-%s-%s-%s",
+                            ctx.getTraceId(),
+                            ctx.getSpanId(),
+                            ctx.getTraceFlags().asHex());
+                }
+            }
+            if (traceparent != null && !traceparent.isBlank()) {
+                request.getHeaders().add(TRACEPARENT_HEADER, traceparent);
+            }
         }
 
-        log.info("[HTTP Client] Outgoing request: {} {} | {}: {}", request.getMethod(), request.getURI(),
-                CORRELATION_ID_HEADER, request.getHeaders().getFirst(CORRELATION_ID_HEADER));
+        log.info("[HTTP Client] Outgoing request: {} {} | {}: {} | {}: {}",
+                request.getMethod(), request.getURI(),
+                CORRELATION_ID_HEADER, request.getHeaders().getFirst(CORRELATION_ID_HEADER),
+                TRACEPARENT_HEADER, request.getHeaders().getFirst(TRACEPARENT_HEADER));
         return execution.execute(request, body);
     }
 }

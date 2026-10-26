@@ -34,4 +34,5 @@ public class OutboxMessage {
 
     private int retryCount;
     private String lastError;
+    private String traceparent;
 }
