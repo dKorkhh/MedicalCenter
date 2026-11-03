@@ -1,16 +1,20 @@
 package org.example.reception.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.example.reception.client.BillingServiceAdapter;
+import org.example.reception.client.MedicalRecordsClient;
 import org.example.reception.dto.CreateAppointmentRequest;
+import org.example.reception.mapper.AppointmentMapper;
 import org.example.reception.model.Appointment;
 import org.example.reception.repository.AppointmentRepository;
+import org.example.reception.service.AppointmentPrerequisitesValidator;
 import org.example.reception.service.AppointmentServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,7 +27,6 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,21 +39,39 @@ class TransactionalOutboxIntegrationTest {
     private BillingServiceAdapter billingServiceAdapter;
 
     @Mock
+    private MedicalRecordsClient medicalRecordsClient;
+
+    @Mock
     private OutboxMessageRepository outboxMessageRepository;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
-    @InjectMocks
-    private AppointmentServiceImpl appointmentService;
+    @Spy
+    private AppointmentMapper appointmentMapper = Mappers.getMapper(AppointmentMapper.class);
+
+    @Spy
+    private TraceContextProvider traceContextProvider = new TraceContextProvider();
 
     @Mock
     private KafkaTemplate<String, String> kafkaTemplate;
 
+    private AppointmentPrerequisitesValidator prerequisitesValidator;
+    private AppointmentOutboxService appointmentOutboxService;
+    private AppointmentServiceImpl appointmentService;
     private OutboxEventPublisher outboxEventPublisher;
 
     @BeforeEach
     void setUp() {
+        prerequisitesValidator = new AppointmentPrerequisitesValidator(medicalRecordsClient, billingServiceAdapter);
+        appointmentOutboxService = new AppointmentOutboxService(outboxMessageRepository, objectMapper, traceContextProvider);
+        appointmentService = new AppointmentServiceImpl(
+                appointmentRepository,
+                billingServiceAdapter,
+                appointmentMapper,
+                prerequisitesValidator,
+                appointmentOutboxService
+        );
         outboxEventPublisher = new OutboxEventPublisher(outboxMessageRepository, kafkaTemplate);
     }
 
@@ -115,6 +136,7 @@ class TransactionalOutboxIntegrationTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testOutboxPublisher_publishesPendingEventsAndUpdatesStatus() {
         OutboxMessage pendingMessage = OutboxMessage.builder()
                 .id(UUID.randomUUID().toString())
@@ -130,7 +152,7 @@ class TransactionalOutboxIntegrationTest {
         when(outboxMessageRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
                 .thenReturn(List.of(pendingMessage));
 
-        when(kafkaTemplate.send(anyString(), anyString(), anyString()))
+        when(kafkaTemplate.send(any(ProducerRecord.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
         when(outboxMessageRepository.save(any(OutboxMessage.class)))
@@ -138,7 +160,10 @@ class TransactionalOutboxIntegrationTest {
 
         outboxEventPublisher.publishPendingEvents();
 
-        verify(kafkaTemplate, times(1)).send(anyString(), eq("1019"), eq(pendingMessage.getPayload()));
+        ArgumentCaptor<ProducerRecord<String, String>> recordCaptor = ArgumentCaptor.forClass(ProducerRecord.class);
+        verify(kafkaTemplate, times(1)).send(recordCaptor.capture());
+        assertEquals("1019", recordCaptor.getValue().key());
+        assertEquals(pendingMessage.getPayload(), recordCaptor.getValue().value());
 
         verify(outboxMessageRepository, times(1)).save(pendingMessage);
         assertEquals(OutboxStatus.PROCESSED, pendingMessage.getStatus());
