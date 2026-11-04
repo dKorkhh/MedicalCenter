@@ -19,13 +19,27 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8084"
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: notification-service
         image: notification-service:latest
         imagePullPolicy: Never
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+          - name: tmp-volume
+            mountPath: /tmp
         ports:
         - name: http
           containerPort: 8084
@@ -78,3 +92,6 @@ spec:
           preStop:
             exec:
               command: ["sleep", "5"]
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
