@@ -6,8 +6,8 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 
-@Builder
-public record CreateAppointmentRequest(@NotBlank String patientId, String patientFullName, String patientEmail,
+@Builder(toBuilder = true)
+public record CreateAppointmentRequest(String patientId, String patientFullName, String patientEmail,
                                        @NotBlank String doctorId, String doctorFullName,
                                        @NotNull LocalDateTime appointmentDateTime, String roomNumber,
                                        String invoiceId) {

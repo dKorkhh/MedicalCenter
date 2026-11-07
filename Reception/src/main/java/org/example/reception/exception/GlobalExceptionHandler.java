@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -64,6 +66,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("Downstream failure: {}", ex.toString());
         return ProblemDetails.of(HttpStatus.BAD_GATEWAY, "downstream-unavailable",
                 "Downstream service failure", "Billing service is unavailable or returned a server error.");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        return ProblemDetails.of(HttpStatus.FORBIDDEN, "access-denied",
+                "Access denied", "You do not have permission to access this resource.");
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleAuthenticationFailure(AuthenticationException ex) {
+        return ProblemDetails.of(HttpStatus.UNAUTHORIZED, "unauthorized",
+                "Authentication required", "A valid bearer token is required to access this resource.");
     }
 
     @ExceptionHandler(Exception.class)

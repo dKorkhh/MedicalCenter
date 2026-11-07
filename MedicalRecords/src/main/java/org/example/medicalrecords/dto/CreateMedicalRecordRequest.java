@@ -2,7 +2,7 @@ package org.example.medicalrecords.dto;
 
 import lombok.Builder;
 
-@Builder
+@Builder(toBuilder = true)
 public record CreateMedicalRecordRequest(
         String patientId,
         String doctorId,
