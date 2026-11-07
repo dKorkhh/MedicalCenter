@@ -1,6 +1,7 @@
 package org.example.reception.client.config;
 
 import org.example.reception.client.BillingClient;
+import org.example.reception.client.interceptor.BearerTokenRelayInterceptor;
 import org.example.reception.client.interceptor.CorrelationIdInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +37,7 @@ public class BillingClientConfig {
                 .baseUrl(billingServiceUrl)
                 .requestFactory(requestFactory)
                 .requestInterceptor(new CorrelationIdInterceptor())
+                .requestInterceptor(new BearerTokenRelayInterceptor())
                 .build();
     }
 

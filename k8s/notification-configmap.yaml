@@ -17,3 +17,5 @@ data:
   SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
   OTEL_COLLECTOR_ENDPOINT: "http://otel-collector.default.svc.cluster.local:4318"
   JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+  KEYCLOAK_ISSUER_URI: "http://localhost:8080/realms/medical-center"
+  KEYCLOAK_JWK_SET_URI: "http://host.minikube.internal:8080/realms/medical-center/protocol/openid-connect/certs"
