@@ -10,9 +10,15 @@ import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.idempotency.IdempotencyService;
 import org.example.reception.idempotency.IdempotentResult;
 import org.example.reception.metrics.AppointmentMetricsService;
+import org.example.reception.outbox.OutboxMessage;
+import org.example.reception.outbox.OutboxMessageRepository;
+import org.example.reception.outbox.OutboxStatus;
+import org.example.reception.security.RoleExpressions;
+import org.example.reception.service.AppointmentAccessService;
 import org.example.reception.service.AppointmentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,14 +36,15 @@ import java.util.List;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
+    private final AppointmentAccessService appointmentAccessService;
     private final BillingServiceAdapter billingServiceAdapter;
     private final IdempotencyService idempotencyService;
-    private final org.example.reception.outbox.OutboxMessageRepository outboxMessageRepository;
+    private final OutboxMessageRepository outboxMessageRepository;
     private final AppointmentMetricsService appointmentMetricsService;
 
     @GetMapping("/outbox")
-    public ResponseEntity<List<org.example.reception.outbox.OutboxMessage>> getOutboxMessages(
-            @RequestParam(required = false) org.example.reception.outbox.OutboxStatus status) {
+    @PreAuthorize(RoleExpressions.ADMIN)
+    public ResponseEntity<List<OutboxMessage>> getOutboxMessages(@RequestParam(required = false) OutboxStatus status) {
         if (status != null) {
             return ResponseEntity.ok(outboxMessageRepository.findByStatus(status));
         }
@@ -45,13 +52,15 @@ public class AppointmentController {
     }
 
     @PostMapping
+    @PreAuthorize(RoleExpressions.PATIENT_OR_ADMIN)
     public ResponseEntity<AppointmentResponse> scheduleAppointment(
             @RequestHeader(IdempotencyService.HEADER) String idempotencyKey,
             @Valid @RequestBody CreateAppointmentRequest request) {
 
+        CreateAppointmentRequest ownedRequest = appointmentAccessService.bindRequestToCurrentPatient(request);
         IdempotentResult<AppointmentResponse> result = idempotencyService.execute(
-                idempotencyKey, request,
-                () -> appointmentService.scheduleAppointment(request),
+                idempotencyKey, ownedRequest,
+                () -> appointmentService.scheduleAppointment(ownedRequest),
                 AppointmentResponse::id,
                 appointmentService::getAppointmentById);
 
@@ -64,25 +73,26 @@ public class AppointmentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(RoleExpressions.PATIENT_DOCTOR_OR_ADMIN)
     public ResponseEntity<AppointmentResponse> getAppointmentById(@PathVariable String id) {
-        return ResponseEntity.ok(appointmentService.getAppointmentById(id));
+        return ResponseEntity.ok(appointmentAccessService.getAppointmentVisibleToCurrentUser(id));
     }
 
     @GetMapping
+    @PreAuthorize(RoleExpressions.PATIENT_DOCTOR_OR_ADMIN)
     public ResponseEntity<List<AppointmentResponse>> getAppointments(@RequestParam(required = false) String patientId) {
-        if (patientId != null && !patientId.isBlank()) {
-            return ResponseEntity.ok(appointmentService.getAppointmentsByPatientId(patientId));
-        }
-        return ResponseEntity.ok(appointmentService.getAllAppointments());
+        return ResponseEntity.ok(appointmentAccessService.getAppointmentsVisibleToCurrentUser(patientId));
     }
 
     @GetMapping("/with-invoices")
+    @PreAuthorize(RoleExpressions.PATIENT_OR_ADMIN)
     public ResponseEntity<List<AppointmentDetailsResponse>> getAppointmentsWithInvoices(
             @RequestParam(required = false) String patientId) {
-        return ResponseEntity.ok(appointmentService.getAppointmentDetails(patientId));
+        return ResponseEntity.ok(appointmentAccessService.getAppointmentDetailsVisibleToCurrentUser(patientId));
     }
 
     @GetMapping("/invoices/{invoiceId}")
+    @PreAuthorize(RoleExpressions.PATIENT_OR_ADMIN)
     public ResponseEntity<InvoiceDto> getInvoiceDetails(
             @PathVariable String invoiceId,
             @RequestParam(value = "delay", required = false, defaultValue = "0") long delay) {

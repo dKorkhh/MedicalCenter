@@ -66,6 +66,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    public List<AppointmentResponse> getAppointmentsByDoctorId(String doctorId) {
+        return appointmentMapper.toResponseList(appointmentRepository.findByDoctorId(doctorId));
+    }
+
+    @Override
     public List<AppointmentDetailsResponse> getAppointmentDetails(String patientId) {
         List<AppointmentResponse> appointments = (patientId != null && !patientId.isBlank())
                 ? getAppointmentsByPatientId(patientId)

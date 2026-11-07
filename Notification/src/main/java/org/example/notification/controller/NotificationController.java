@@ -1,6 +1,8 @@
 package org.example.notification.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.notification.security.RoleExpressions;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.example.notification.dto.NotificationResponse;
 import org.example.notification.dto.SendNotificationRequest;
 import org.example.notification.service.NotificationService;
@@ -19,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
+@PreAuthorize(RoleExpressions.ADMIN)
 public class NotificationController {
 
     private final NotificationService notificationService;

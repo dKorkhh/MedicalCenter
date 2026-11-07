@@ -1,6 +1,7 @@
 package org.example.reception.client.config;
 
 import org.example.reception.client.MedicalRecordsClient;
+import org.example.reception.client.interceptor.BearerTokenRelayInterceptor;
 import org.example.reception.client.interceptor.CorrelationIdInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,7 @@ public class MedicalRecordsClientConfig {
                 .baseUrl(medicalRecordsServiceUrl)
                 .requestFactory(requestFactory)
                 .requestInterceptor(new CorrelationIdInterceptor())
+                .requestInterceptor(new BearerTokenRelayInterceptor())
                 .build();
         RestClientAdapter adapter = RestClientAdapter.create(restClient);
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
