@@ -53,11 +53,4 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
-    private ProblemDetail buildProblemDetail(HttpStatus status, String title, String detail) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
-        problemDetail.setTitle(title);
-        problemDetail.setType(URI.create("https://datatracker.ietf.org/doc/html/rfc9457"));
-        problemDetail.setProperty("timestamp", Instant.now());
-        return problemDetail;
-    }
 }
