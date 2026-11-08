@@ -2,6 +2,7 @@ package org.example.reception.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -66,6 +67,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.warn("Downstream failure: {}", ex.toString());
         return ProblemDetails.of(HttpStatus.BAD_GATEWAY, "downstream-unavailable",
                 "Downstream service failure", "Billing service is unavailable or returned a server error.");
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ProblemDetail handleOptimisticLockingFailure(OptimisticLockingFailureException ex) {
+        return ProblemDetails.of(HttpStatus.CONFLICT, "slot-concurrent-modification",
+                "Concurrent modification detected", "The requested time slot was concurrently reserved by another user.");
     }
 
     @ExceptionHandler(AccessDeniedException.class)

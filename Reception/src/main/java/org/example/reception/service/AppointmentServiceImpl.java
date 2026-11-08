@@ -1,6 +1,5 @@
 package org.example.reception.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.reception.client.BillingServiceAdapter;
 import org.example.reception.client.dto.InvoiceDto;
@@ -10,8 +9,10 @@ import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.event.AppointmentBookedEvent;
 import org.example.reception.mapper.AppointmentMapper;
 import org.example.reception.model.Appointment;
+import org.example.reception.model.TimeSlot;
 import org.example.reception.outbox.AppointmentOutboxService;
 import org.example.reception.repository.AppointmentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,12 +21,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
@@ -33,14 +34,44 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentMapper appointmentMapper;
     private final AppointmentPrerequisitesValidator prerequisitesValidator;
     private final AppointmentOutboxService appointmentOutboxService;
+    private final TimeSlotReservationService timeSlotReservationService;
+
+    public AppointmentServiceImpl(
+            AppointmentRepository appointmentRepository,
+            BillingServiceAdapter billingServiceAdapter,
+            AppointmentMapper appointmentMapper,
+            AppointmentPrerequisitesValidator prerequisitesValidator,
+            AppointmentOutboxService appointmentOutboxService) {
+        this(appointmentRepository, billingServiceAdapter, appointmentMapper,
+                prerequisitesValidator, appointmentOutboxService, null);
+    }
+
+    @Autowired
+    public AppointmentServiceImpl(
+            AppointmentRepository appointmentRepository,
+            BillingServiceAdapter billingServiceAdapter,
+            AppointmentMapper appointmentMapper,
+            AppointmentPrerequisitesValidator prerequisitesValidator,
+            AppointmentOutboxService appointmentOutboxService,
+            TimeSlotReservationService timeSlotReservationService) {
+        this.appointmentRepository = appointmentRepository;
+        this.billingServiceAdapter = billingServiceAdapter;
+        this.appointmentMapper = appointmentMapper;
+        this.prerequisitesValidator = prerequisitesValidator;
+        this.appointmentOutboxService = appointmentOutboxService;
+        this.timeSlotReservationService = timeSlotReservationService;
+    }
 
     @Override
     @Transactional
     public AppointmentResponse scheduleAppointment(CreateAppointmentRequest request) {
         prerequisitesValidator.verifyAppointmentPrerequisites(request);
+        Optional<TimeSlot> reservedSlot = reserveTimeSlotIfConfigured(request);
 
         Appointment appointment = appointmentMapper.toEntity(request);
+        reservedSlot.ifPresent(slot -> applyReservedSlotToAppointment(appointment, slot));
         Appointment savedAppointment = appointmentRepository.save(appointment);
+        reservedSlot.ifPresent(slot -> timeSlotReservationService.bindAppointmentIdToReservedSlot(slot, savedAppointment.getId()));
 
         AppointmentBookedEvent bookedEvent = appointmentMapper.toBookedEvent(savedAppointment, request);
         appointmentOutboxService.recordAppointmentBookedEvent(bookedEvent);
@@ -83,6 +114,20 @@ public class AppointmentServiceImpl implements AppointmentService {
                         appointment,
                         appointment.invoiceId() == null ? null : invoicesById.get(appointment.invoiceId())))
                 .toList();
+    }
+
+    private Optional<TimeSlot> reserveTimeSlotIfConfigured(CreateAppointmentRequest request) {
+        if (timeSlotReservationService == null) {
+            return Optional.empty();
+        }
+        return timeSlotReservationService.reserveSlotForAppointment(request);
+    }
+
+    private void applyReservedSlotToAppointment(Appointment appointment, TimeSlot slot) {
+        appointment.setTimeSlotId(slot.getId());
+        if ((appointment.getRoomNumber() == null || appointment.getRoomNumber().isBlank()) && slot.getRoomNumber() != null) {
+            appointment.setRoomNumber(slot.getRoomNumber());
+        }
     }
 
     private Map<String, InvoiceDto> fetchInvoicesByAppointments(List<AppointmentResponse> appointments) {
