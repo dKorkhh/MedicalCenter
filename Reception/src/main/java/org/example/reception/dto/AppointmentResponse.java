@@ -11,6 +11,7 @@ public record AppointmentResponse(
         String patientFullName,
         String doctorId,
         String doctorFullName,
+        String timeSlotId,
         LocalDateTime appointmentDateTime,
         String appointmentStatus,
         String roomNumber,

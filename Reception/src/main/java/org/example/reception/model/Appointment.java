@@ -22,6 +22,7 @@ public class Appointment {
     private String patientFullName;
     private String doctorId;
     private String doctorFullName;
+    private String timeSlotId;
     private LocalDateTime appointmentDateTime;
     private String appointmentStatus;
     private String roomNumber;

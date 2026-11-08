@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Builder(toBuilder = true)
 public record CreateAppointmentRequest(String patientId, String patientFullName, String patientEmail,
                                        @NotBlank String doctorId, String doctorFullName,
+                                       String timeSlotId,
                                        @NotNull LocalDateTime appointmentDateTime, String roomNumber,
                                        String invoiceId) {
 }
