@@ -82,6 +82,8 @@ app:
   kafka:
     topics:
       appointment-booked: medical.appointment.booked
+      appointment-cancelled: medical.appointment.cancelled
+      appointment-completed: medical.appointment.completed
 
 logging:
   structured:

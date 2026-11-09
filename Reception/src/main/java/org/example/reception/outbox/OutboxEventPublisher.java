@@ -19,11 +19,21 @@ import java.util.List;
 @ConditionalOnProperty(name = "app.outbox.publisher.enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxEventPublisher {
 
+    public static final String EVENT_TYPE_BOOKED = "APPOINTMENT_BOOKED";
+    public static final String EVENT_TYPE_CANCELLED = "APPOINTMENT_CANCELLED";
+    public static final String EVENT_TYPE_COMPLETED = "APPOINTMENT_COMPLETED";
+
     private final OutboxMessageRepository outboxMessageRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Value("${app.kafka.topics.appointment-booked:medical.appointment.booked}")
     private String defaultTopic = "medical.appointment.booked";
+
+    @Value("${app.kafka.topics.appointment-cancelled:medical.appointment.cancelled}")
+    private String cancelledTopic = "medical.appointment.cancelled";
+
+    @Value("${app.kafka.topics.appointment-completed:medical.appointment.completed}")
+    private String completedTopic = "medical.appointment.completed";
 
     @Value("${app.outbox.max-retries:5}")
     private int maxRetries = 5;
@@ -43,7 +53,7 @@ public class OutboxEventPublisher {
     }
 
     public void publishMessage(OutboxMessage message) {
-        String topic = defaultTopic;
+        String topic = resolveTopicByEventType(message.getEventType());
         String key = message.getAggregateId() != null ? message.getAggregateId() : message.getId();
 
         try {
@@ -67,6 +77,16 @@ public class OutboxEventPublisher {
         } catch (Exception ex) {
             handleFailure(message, ex);
         }
+    }
+
+    public String resolveTopicByEventType(String eventType) {
+        if (EVENT_TYPE_CANCELLED.equals(eventType)) {
+            return cancelledTopic;
+        }
+        if (EVENT_TYPE_COMPLETED.equals(eventType)) {
+            return completedTopic;
+        }
+        return defaultTopic;
     }
 
     private void handleFailure(OutboxMessage message, Throwable ex) {

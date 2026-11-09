@@ -36,3 +36,9 @@ management:
     readiness:
       state:
         enabled: true
+
+app:
+  kafka:
+    topics:
+      appointment-cancelled: medical.appointment.cancelled
+      appointment-completed: medical.appointment.completed
