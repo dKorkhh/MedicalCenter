@@ -20,6 +20,7 @@ public class Appointment {
     private String id;
     private String patientId;
     private String patientFullName;
+    private String patientEmail;
     private String doctorId;
     private String doctorFullName;
     private String timeSlotId;
@@ -27,5 +28,8 @@ public class Appointment {
     private String appointmentStatus;
     private String roomNumber;
     private String invoiceId;
+    private String cancelledBy;
+    private String cancellationReason;
+    private LocalDateTime cancelledAt;
     private LocalDateTime createdAt;
 }

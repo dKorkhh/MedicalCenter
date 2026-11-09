@@ -35,22 +35,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleAllUncaughtException(Exception ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
-                ex.getMessage()
-        );
-        problemDetail.setTitle("Internal Server Error");
-        problemDetail.setType(URI.create("https://datatracker.ietf.org/doc/html/rfc9457"));
-        problemDetail.setProperty("timestamp", Instant.now());
-        return problemDetail;
-    }
-
-    private ProblemDetail buildProblemDetail(HttpStatus status, String title, String detail) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
-        problemDetail.setTitle(title);
-        problemDetail.setType(URI.create("https://datatracker.ietf.org/doc/html/rfc9457"));
-        problemDetail.setProperty("timestamp", Instant.now());
-        return problemDetail;
+        return buildProblemDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage());
     }
 
     private ProblemDetail buildProblemDetail(HttpStatus status, String title, String detail) {

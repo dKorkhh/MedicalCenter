@@ -19,12 +19,16 @@ public class NotificationDeadLetterRecorder {
     private final ObjectMapper objectMapper;
 
     public void recordFailure(AppointmentBookedEvent event, String topic, long offset, String errorMessage) {
+        recordFailure(event.getEventId(), event, topic, offset, errorMessage);
+    }
+
+    public void recordFailure(String eventId, Object event, String topic, long offset, String errorMessage) {
         log.error("Dead Letter Topic (DLT) reached: eventId={}, fromTopic={}, offset={}, error={}",
-                event.getEventId(), topic, offset, errorMessage);
+                eventId, topic, offset, errorMessage);
 
         try {
             NotificationDeadLetter deadLetter = NotificationDeadLetter.builder()
-                    .eventId(event.getEventId())
+                    .eventId(eventId)
                     .originalTopic(topic)
                     .offset(offset)
                     .errorMessage(errorMessage)
@@ -33,7 +37,7 @@ public class NotificationDeadLetterRecorder {
                     .build();
 
             notificationDeadLetterRepository.save(deadLetter);
-            log.info("Recorded DLT failure event to database: eventId={}", event.getEventId());
+            log.info("Recorded DLT failure event to database: eventId={}", eventId);
         } catch (Exception exception) {
             log.error("Failed to record DLT failure event: {}", exception.getMessage());
         }

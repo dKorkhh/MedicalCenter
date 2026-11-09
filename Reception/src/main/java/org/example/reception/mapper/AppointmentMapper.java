@@ -20,6 +20,9 @@ public interface AppointmentMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "appointmentStatus", constant = "SCHEDULED")
+    @Mapping(target = "cancelledBy", ignore = true)
+    @Mapping(target = "cancellationReason", ignore = true)
+    @Mapping(target = "cancelledAt", ignore = true)
     @Mapping(target = "createdAt", expression = "java(LocalDateTime.now())")
     Appointment toEntity(CreateAppointmentRequest request);
 
@@ -47,7 +50,7 @@ public interface AppointmentMapper {
     @Mapping(target = "timeSlotId", source = "appointment.timeSlotId")
     @Mapping(target = "patientId", source = "appointment.patientId")
     @Mapping(target = "patientFullName", source = "appointment.patientFullName")
-    @Mapping(target = "patientEmail", source = "patientEmail")
+    @Mapping(target = "patientEmail", expression = "java(resolvePatientEmailFromAppointment(appointment))")
     @Mapping(target = "doctorId", source = "appointment.doctorId")
     @Mapping(target = "doctorFullName", source = "appointment.doctorFullName")
     @Mapping(target = "appointmentDateTime", source = "appointment.appointmentDateTime")
@@ -59,7 +62,6 @@ public interface AppointmentMapper {
     @Mapping(target = "timestamp", expression = "java(LocalDateTime.now())")
     AppointmentCancelledEvent toCancelledEvent(
             Appointment appointment,
-            String patientEmail,
             BigDecimal refundAmount,
             String currency,
             String cancelledBy,
@@ -98,6 +100,13 @@ public interface AppointmentMapper {
     default String resolvePatientEmail(CreateAppointmentRequest request, Appointment appointment) {
         if (request != null && request.patientEmail() != null && !request.patientEmail().isBlank()) {
             return request.patientEmail();
+        }
+        return resolvePatientEmailFromAppointment(appointment);
+    }
+
+    default String resolvePatientEmailFromAppointment(Appointment appointment) {
+        if (appointment != null && appointment.getPatientEmail() != null && !appointment.getPatientEmail().isBlank()) {
+            return appointment.getPatientEmail();
         }
         return "patient-" + (appointment != null ? appointment.getPatientId() : "") + "@medicalcenter.local";
     }

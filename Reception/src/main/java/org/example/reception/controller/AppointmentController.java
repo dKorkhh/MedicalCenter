@@ -6,6 +6,7 @@ import org.example.reception.client.BillingServiceAdapter;
 import org.example.reception.client.dto.InvoiceDto;
 import org.example.reception.dto.AppointmentDetailsResponse;
 import org.example.reception.dto.AppointmentResponse;
+import org.example.reception.dto.CancelAppointmentRequest;
 import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.idempotency.IdempotencyService;
 import org.example.reception.idempotency.IdempotentResult;
@@ -70,6 +71,14 @@ public class AppointmentController {
         }
         appointmentMetricsService.recordAppointment();
         return response.body(result.value());
+    }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize(RoleExpressions.PATIENT_DOCTOR_OR_ADMIN)
+    public ResponseEntity<AppointmentResponse> cancelAppointment(
+            @PathVariable String id,
+            @RequestBody(required = false) CancelAppointmentRequest request) {
+        return ResponseEntity.ok(appointmentAccessService.cancelAppointmentVisibleToCurrentUser(id, request));
     }
 
     @GetMapping("/{id}")

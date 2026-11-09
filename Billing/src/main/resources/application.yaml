@@ -10,6 +10,17 @@ spring:
       enabled: true
   mongodb:
     uri: ${BILLING_MONGO_URI:mongodb://localhost:27017/medical_billing}
+  kafka:
+    bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}"
+    consumer:
+      group-id: billing-service-group
+      auto-offset-reset: earliest
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/medical-center}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/medical-center/protocol/openid-connect/certs}
 
 server:
   port: ${BILLING_SERVER_PORT:8082}
