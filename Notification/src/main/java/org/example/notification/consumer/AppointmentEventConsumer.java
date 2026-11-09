@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.notification.event.AppointmentBookedEvent;
+import org.example.notification.event.AppointmentCancelledEvent;
 import org.example.notification.model.Notification;
 import org.example.notification.service.AppointmentNotificationProcessor;
 import org.example.notification.service.NotificationDeadLetterRecorder;
@@ -19,6 +20,8 @@ import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
+
+import java.util.function.Supplier;
 
 @Slf4j
 @Component
@@ -43,24 +46,61 @@ public class AppointmentEventConsumer {
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.OFFSET) long offset,
             @Header(name = "traceparent", required = false) Object traceparentHeader) {
+        processConsumerEvent(
+                "kafka-appointment-booked-consumer",
+                event.getEventId(),
+                event.getDoctorId(),
+                topic,
+                offset,
+                traceparentHeader,
+                () -> notificationProcessor.processAppointmentBooking(event, topic));
+    }
 
+    @KafkaListener(
+            topics = "${app.kafka.topics.appointment-cancelled:medical.appointment.cancelled}",
+            groupId = "${spring.kafka.consumer.group-id:notification-service-group}",
+            containerFactory = "cancelledAppointmentKafkaListenerContainerFactory"
+    )
+    public void handleAppointmentCancelled(
+            AppointmentCancelledEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            @Header(name = "traceparent", required = false) Object traceparentHeader) {
+        processConsumerEvent(
+                "kafka-appointment-cancelled-consumer",
+                event.eventId(),
+                event.doctorId(),
+                topic,
+                offset,
+                traceparentHeader,
+                () -> notificationProcessor.processAppointmentCancellation(event, topic));
+    }
+
+    private void processConsumerEvent(
+            String spanName,
+            String eventId,
+            String doctorId,
+            String topic,
+            long offset,
+            Object traceparentHeader,
+            Supplier<Notification> notificationAction) {
         String traceparent = traceContextExtractor.extractTraceparent(traceparentHeader);
 
-        try (TraceContextSession session = traceContextExtractor.startConsumerSpan("kafka-appointment-booked-consumer", traceparent)) {
+        try (TraceContextSession session = traceContextExtractor.startConsumerSpan(spanName, traceparent)) {
             log.info("Received event: id={}, topic={}, offset={}, traceparent={}",
-                    event.getEventId(), topic, offset, traceparent);
+                    eventId, topic, offset, traceparent);
 
-            if (notificationProcessor.isAlreadyProcessed(event.getEventId())) {
-                log.warn("Idempotent Consumer: Duplicate event detected (eventId={}). Skipping business execution.", event.getEventId());
+            if (notificationProcessor.isAlreadyProcessed(eventId)) {
+                log.warn("Idempotent Consumer: Duplicate event detected (eventId={}). Skipping business execution.", eventId);
                 return;
             }
 
-            verifyFailureSimulation(event);
+            verifyFailureSimulation(eventId, doctorId);
 
             try {
-                Notification notification = notificationProcessor.processAppointmentBooking(event, topic);
+                Notification notification = notificationAction.get();
                 log.info("Idempotent Consumer: Successfully processed eventId={}, created notificationId={}",
-                        event.getEventId(), notification.getId());
+                        eventId, notification.getId());
             } catch (Exception exception) {
                 session.recordFailure(exception);
                 throw exception;
@@ -68,10 +108,10 @@ public class AppointmentEventConsumer {
         }
     }
 
-    private void verifyFailureSimulation(AppointmentBookedEvent event) {
-        if (simulateFailure || "FAIL_SIMULATION".equals(event.getDoctorId())) {
-            log.error("Artificial consumer failure triggered for eventId={}", event.getEventId());
-            throw new RuntimeException("Artificial failure triggered for eventId=" + event.getEventId());
+    private void verifyFailureSimulation(String eventId, String doctorId) {
+        if (simulateFailure || "FAIL_SIMULATION".equals(doctorId)) {
+            log.error("Artificial consumer failure triggered for eventId={}", eventId);
+            throw new RuntimeException("Artificial failure triggered for eventId=" + eventId);
         }
     }
 

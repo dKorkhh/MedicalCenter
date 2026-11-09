@@ -3,6 +3,7 @@ package org.example.reception.service;
 import lombok.RequiredArgsConstructor;
 import org.example.reception.dto.AppointmentDetailsResponse;
 import org.example.reception.dto.AppointmentResponse;
+import org.example.reception.dto.CancelAppointmentRequest;
 import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.security.CurrentUserProvider;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,13 @@ public class AppointmentAccessService {
         return appointment;
     }
 
+    public AppointmentResponse cancelAppointmentVisibleToCurrentUser(String id, CancelAppointmentRequest request) {
+        AppointmentResponse appointment = appointmentService.getAppointmentById(id);
+        verifyCurrentUserCanViewAppointment(appointment);
+        String reason = request != null ? request.reason() : null;
+        return appointmentService.cancelAppointment(id, resolveCancelledByRole(), reason);
+    }
+
     public List<AppointmentResponse> getAppointmentsVisibleToCurrentUser(String requestedPatientId) {
         if (currentUserProvider.isAdmin()) {
             return getAppointmentsForAdmin(requestedPatientId);
@@ -44,6 +52,16 @@ public class AppointmentAccessService {
 
     public List<AppointmentDetailsResponse> getAppointmentDetailsVisibleToCurrentUser(String requestedPatientId) {
         return appointmentService.getAppointmentDetails(resolvePatientIdForCurrentUser(requestedPatientId));
+    }
+
+    private String resolveCancelledByRole() {
+        if (currentUserProvider.isAdmin()) {
+            return "ADMIN";
+        }
+        if (currentUserProvider.isDoctor()) {
+            return "DOCTOR";
+        }
+        return "PATIENT";
     }
 
     private List<AppointmentResponse> getAppointmentsForAdmin(String requestedPatientId) {

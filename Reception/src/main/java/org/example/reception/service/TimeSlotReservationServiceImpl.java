@@ -5,6 +5,7 @@ import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.dto.TimeSlotResponse;
 import org.example.reception.exception.ApiProblemException;
 import org.example.reception.mapper.TimeSlotMapper;
+import org.example.reception.model.Appointment;
 import org.example.reception.model.TimeSlot;
 import org.example.reception.model.TimeSlotStatus;
 import org.example.reception.repository.AppointmentRepository;
@@ -80,6 +81,28 @@ public class TimeSlotReservationServiceImpl implements TimeSlotReservationServic
         slot.setAppointmentId(appointmentId);
         slot.setUpdatedAt(LocalDateTime.now());
         timeSlotRepository.save(slot);
+    }
+
+    @Override
+    public void releaseSlotForCancelledAppointment(Appointment appointment) {
+        findSlotLinkedToAppointment(appointment).ifPresent(slot -> {
+            slot.setStatus(TimeSlotStatus.AVAILABLE);
+            slot.setHeldByPatientId(null);
+            slot.setAppointmentId(null);
+            slot.setUpdatedAt(LocalDateTime.now());
+            timeSlotRepository.save(slot);
+        });
+    }
+
+    private Optional<TimeSlot> findSlotLinkedToAppointment(Appointment appointment) {
+        if (timeSlotRepository == null) {
+            return Optional.empty();
+        }
+        if (appointment.getTimeSlotId() != null && !appointment.getTimeSlotId().isBlank()) {
+            return timeSlotRepository.findById(appointment.getTimeSlotId());
+        }
+        return timeSlotRepository.findByDoctorIdAndStartTime(
+                appointment.getDoctorId(), appointment.getAppointmentDateTime());
     }
 
     private Optional<TimeSlot> findTargetSlotForAppointment(CreateAppointmentRequest request) {

@@ -16,6 +16,9 @@ public record AppointmentResponse(
         String appointmentStatus,
         String roomNumber,
         String invoiceId,
+        String cancelledBy,
+        String cancellationReason,
+        LocalDateTime cancelledAt,
         LocalDateTime createdAt
 ) {
 }

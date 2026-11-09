@@ -2,6 +2,7 @@ package org.example.reception.service;
 
 import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.dto.TimeSlotResponse;
+import org.example.reception.model.Appointment;
 import org.example.reception.model.TimeSlot;
 import org.example.reception.model.TimeSlotStatus;
 
@@ -22,4 +23,6 @@ public interface TimeSlotReservationService {
     Optional<TimeSlot> reserveSlotForAppointment(CreateAppointmentRequest request);
 
     void bindAppointmentIdToReservedSlot(TimeSlot slot, String appointmentId);
+
+    void releaseSlotForCancelledAppointment(Appointment appointment);
 }

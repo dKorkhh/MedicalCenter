@@ -10,6 +10,8 @@ public interface AppointmentService {
 
     AppointmentResponse scheduleAppointment(CreateAppointmentRequest request);
 
+    AppointmentResponse cancelAppointment(String id, String cancelledBy, String reason);
+
     AppointmentResponse getAppointmentById(String id);
 
     List<AppointmentResponse> getAllAppointments();

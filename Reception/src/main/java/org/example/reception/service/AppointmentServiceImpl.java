@@ -7,6 +7,8 @@ import org.example.reception.dto.AppointmentDetailsResponse;
 import org.example.reception.dto.AppointmentResponse;
 import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.event.AppointmentBookedEvent;
+import org.example.reception.event.AppointmentCancelledEvent;
+import org.example.reception.exception.ApiProblemException;
 import org.example.reception.mapper.AppointmentMapper;
 import org.example.reception.model.Appointment;
 import org.example.reception.model.TimeSlot;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +32,10 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
+
+    private static final String CANCELLED_STATUS = "CANCELLED";
+    private static final String COMPLETED_STATUS = "COMPLETED";
+    private static final String DEFAULT_CURRENCY = "UAH";
 
     private final AppointmentRepository appointmentRepository;
     private final BillingServiceAdapter billingServiceAdapter;
@@ -80,10 +88,26 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    @Transactional
+    public AppointmentResponse cancelAppointment(String id, String cancelledBy, String reason) {
+        Appointment appointment = findExistingAppointment(id);
+        verifyAppointmentCanBeCancelled(appointment);
+
+        appointment.setAppointmentStatus(CANCELLED_STATUS);
+        appointment.setCancelledBy(cancelledBy);
+        appointment.setCancellationReason(reason);
+        appointment.setCancelledAt(LocalDateTime.now());
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        releaseTimeSlotIfConfigured(savedAppointment);
+        recordCancellationOutboxEvent(savedAppointment, cancelledBy, reason);
+
+        return appointmentMapper.toResponse(savedAppointment);
+    }
+
+    @Override
     public AppointmentResponse getAppointmentById(String id) {
-        return appointmentRepository.findById(id)
-                .map(appointmentMapper::toResponse)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found with id: " + id));
+        return appointmentMapper.toResponse(findExistingAppointment(id));
     }
 
     @Override
@@ -116,11 +140,55 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .toList();
     }
 
+    private Appointment findExistingAppointment(String id) {
+        return appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found with id: " + id));
+    }
+
+    private void verifyAppointmentCanBeCancelled(Appointment appointment) {
+        if (CANCELLED_STATUS.equalsIgnoreCase(appointment.getAppointmentStatus())) {
+            throw new ApiProblemException(HttpStatus.CONFLICT, "appointment-already-cancelled",
+                    "Appointment already cancelled", "Appointment " + appointment.getId() + " is already cancelled.");
+        }
+        if (COMPLETED_STATUS.equalsIgnoreCase(appointment.getAppointmentStatus())) {
+            throw new ApiProblemException(HttpStatus.CONFLICT, "appointment-already-completed",
+                    "Appointment already completed", "Completed appointment " + appointment.getId() + " cannot be cancelled.");
+        }
+    }
+
     private Optional<TimeSlot> reserveTimeSlotIfConfigured(CreateAppointmentRequest request) {
         if (timeSlotReservationService == null) {
             return Optional.empty();
         }
         return timeSlotReservationService.reserveSlotForAppointment(request);
+    }
+
+    private void releaseTimeSlotIfConfigured(Appointment appointment) {
+        if (timeSlotReservationService != null) {
+            timeSlotReservationService.releaseSlotForCancelledAppointment(appointment);
+        }
+    }
+
+    private void recordCancellationOutboxEvent(Appointment appointment, String cancelledBy, String reason) {
+        InvoiceDto invoice = fetchInvoiceForRefund(appointment.getInvoiceId());
+        BigDecimal refundAmount = invoice != null && invoice.amount() != null ? invoice.amount() : BigDecimal.ZERO;
+        String currency = invoice != null && invoice.currency() != null ? invoice.currency() : DEFAULT_CURRENCY;
+
+        AppointmentCancelledEvent cancelledEvent = appointmentMapper.toCancelledEvent(
+                appointment, refundAmount, currency, cancelledBy, reason);
+        appointmentOutboxService.recordAppointmentCancelledEvent(cancelledEvent);
+    }
+
+    private InvoiceDto fetchInvoiceForRefund(String invoiceId) {
+        if (invoiceId == null || invoiceId.isBlank() || billingServiceAdapter == null) {
+            return null;
+        }
+        try {
+            return billingServiceAdapter.getInvoice(invoiceId, 0L);
+        } catch (Exception ex) {
+            log.warn("Unable to resolve invoice {} during appointment cancellation: {}", invoiceId, ex.getMessage());
+            return null;
+        }
     }
 
     private void applyReservedSlotToAppointment(Appointment appointment, TimeSlot slot) {
