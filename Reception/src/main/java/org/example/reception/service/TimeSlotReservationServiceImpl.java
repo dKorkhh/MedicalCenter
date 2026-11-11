@@ -61,19 +61,16 @@ public class TimeSlotReservationServiceImpl implements TimeSlotReservationServic
     }
 
     @Override
-    public Optional<TimeSlot> reserveSlotForAppointment(CreateAppointmentRequest request) {
-        verifyDoctorTimeNotAlreadyBooked(request.doctorId(), request.appointmentDateTime());
-        Optional<TimeSlot> candidateSlot = findTargetSlotForAppointment(request);
-        if (candidateSlot.isEmpty()) {
-            return Optional.empty();
-        }
-        TimeSlot slot = candidateSlot.get();
+    public TimeSlot reserveSlotForAppointment(CreateAppointmentRequest request) {
+        verifyTimeSlotIdProvided(request.timeSlotId());
+        TimeSlot slot = findExistingTimeSlot(request.timeSlotId());
         verifySlotMatchesAppointmentDoctorAndTime(slot, request);
+        verifyDoctorTimeNotAlreadyBooked(slot.getDoctorId(), slot.getStartTime());
         verifySlotAvailableForPatient(slot, request.patientId());
         slot.setStatus(TimeSlotStatus.BOOKED);
         slot.setHeldByPatientId(request.patientId());
         slot.setUpdatedAt(LocalDateTime.now());
-        return Optional.of(timeSlotRepository.save(slot));
+        return timeSlotRepository.save(slot);
     }
 
     @Override
@@ -94,6 +91,13 @@ public class TimeSlotReservationServiceImpl implements TimeSlotReservationServic
         });
     }
 
+    private void verifyTimeSlotIdProvided(String timeSlotId) {
+        if (timeSlotId == null || timeSlotId.isBlank()) {
+            throw new ApiProblemException(HttpStatus.BAD_REQUEST, "timeslot-id-required",
+                    "Time slot ID required", "Booking an appointment requires a valid timeSlotId.");
+        }
+    }
+
     private Optional<TimeSlot> findSlotLinkedToAppointment(Appointment appointment) {
         if (timeSlotRepository == null) {
             return Optional.empty();
@@ -103,16 +107,6 @@ public class TimeSlotReservationServiceImpl implements TimeSlotReservationServic
         }
         return timeSlotRepository.findByDoctorIdAndStartTime(
                 appointment.getDoctorId(), appointment.getAppointmentDateTime());
-    }
-
-    private Optional<TimeSlot> findTargetSlotForAppointment(CreateAppointmentRequest request) {
-        if (request.timeSlotId() != null && !request.timeSlotId().isBlank()) {
-            return Optional.of(findExistingTimeSlot(request.timeSlotId()));
-        }
-        if (timeSlotRepository == null) {
-            return Optional.empty();
-        }
-        return timeSlotRepository.findByDoctorIdAndStartTime(request.doctorId(), request.appointmentDateTime());
     }
 
     private void verifyDoctorTimeNotAlreadyBooked(String doctorId, LocalDateTime appointmentDateTime) {
@@ -125,9 +119,13 @@ public class TimeSlotReservationServiceImpl implements TimeSlotReservationServic
     }
 
     private void verifySlotMatchesAppointmentDoctorAndTime(TimeSlot slot, CreateAppointmentRequest request) {
-        if (!slot.getDoctorId().equals(request.doctorId()) || !slot.getStartTime().equals(request.appointmentDateTime())) {
+        if (request.doctorId() != null && !request.doctorId().isBlank() && !slot.getDoctorId().equals(request.doctorId())) {
             throw new ApiProblemException(HttpStatus.BAD_REQUEST, "slot-mismatch",
-                    "Time slot mismatch", "Provided timeSlotId does not match doctorId or appointmentDateTime.");
+                    "Time slot mismatch", "Provided doctorId does not match the time slot's doctorId.");
+        }
+        if (request.appointmentDateTime() != null && !slot.getStartTime().equals(request.appointmentDateTime())) {
+            throw new ApiProblemException(HttpStatus.BAD_REQUEST, "slot-mismatch",
+                    "Time slot mismatch", "Provided appointmentDateTime does not match the time slot's startTime.");
         }
     }
 

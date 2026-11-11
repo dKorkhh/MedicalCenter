@@ -83,6 +83,7 @@ class TransactionalOutboxIntegrationTest {
                 .patientEmail("test@gmai.com")
                 .doctorId("456")
                 .doctorFullName("Test doc")
+                .timeSlotId("slot-1")
                 .appointmentDateTime(LocalDateTime.now().plusDays(2))
                 .roomNumber("101")
                 .invoiceId("999")
@@ -123,6 +124,7 @@ class TransactionalOutboxIntegrationTest {
         CreateAppointmentRequest request = CreateAppointmentRequest.builder()
                 .patientId("123")
                 .doctorId("456")
+                .timeSlotId("slot-1")
                 .appointmentDateTime(LocalDateTime.now().plusDays(2))
                 .build();
 

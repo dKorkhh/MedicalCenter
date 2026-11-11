@@ -33,6 +33,7 @@ public interface AppointmentMapper {
     @Mapping(target = "eventId", expression = "java(UUID.randomUUID().toString())")
     @Mapping(target = "eventType", constant = "APPOINTMENT_BOOKED")
     @Mapping(target = "appointmentId", source = "appointment.id")
+    @Mapping(target = "timeSlotId", source = "appointment.timeSlotId")
     @Mapping(target = "patientId", source = "appointment.patientId")
     @Mapping(target = "patientFullName", source = "appointment.patientFullName")
     @Mapping(target = "patientEmail", expression = "java(resolvePatientEmail(request, appointment))")

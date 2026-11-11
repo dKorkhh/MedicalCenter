@@ -25,7 +25,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -74,12 +73,12 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public AppointmentResponse scheduleAppointment(CreateAppointmentRequest request) {
         prerequisitesValidator.verifyAppointmentPrerequisites(request);
-        Optional<TimeSlot> reservedSlot = reserveTimeSlotIfConfigured(request);
+        TimeSlot reservedSlot = reserveTimeSlot(request);
 
         Appointment appointment = appointmentMapper.toEntity(request);
-        reservedSlot.ifPresent(slot -> applyReservedSlotToAppointment(appointment, slot));
+        applyReservedSlotToAppointment(appointment, reservedSlot);
         Appointment savedAppointment = appointmentRepository.save(appointment);
-        reservedSlot.ifPresent(slot -> timeSlotReservationService.bindAppointmentIdToReservedSlot(slot, savedAppointment.getId()));
+        bindAppointmentToReservedSlot(reservedSlot, savedAppointment.getId());
 
         AppointmentBookedEvent bookedEvent = appointmentMapper.toBookedEvent(savedAppointment, request);
         appointmentOutboxService.recordAppointmentBookedEvent(bookedEvent);
@@ -156,11 +155,17 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    private Optional<TimeSlot> reserveTimeSlotIfConfigured(CreateAppointmentRequest request) {
+    private TimeSlot reserveTimeSlot(CreateAppointmentRequest request) {
         if (timeSlotReservationService == null) {
-            return Optional.empty();
+            return null;
         }
         return timeSlotReservationService.reserveSlotForAppointment(request);
+    }
+
+    private void bindAppointmentToReservedSlot(TimeSlot reservedSlot, String appointmentId) {
+        if (timeSlotReservationService != null && reservedSlot != null) {
+            timeSlotReservationService.bindAppointmentIdToReservedSlot(reservedSlot, appointmentId);
+        }
     }
 
     private void releaseTimeSlotIfConfigured(Appointment appointment) {
@@ -192,7 +197,16 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private void applyReservedSlotToAppointment(Appointment appointment, TimeSlot slot) {
+        if (slot == null) {
+            return;
+        }
         appointment.setTimeSlotId(slot.getId());
+        if (appointment.getDoctorId() == null || appointment.getDoctorId().isBlank()) {
+            appointment.setDoctorId(slot.getDoctorId());
+        }
+        if (appointment.getAppointmentDateTime() == null) {
+            appointment.setAppointmentDateTime(slot.getStartTime());
+        }
         if ((appointment.getRoomNumber() == null || appointment.getRoomNumber().isBlank()) && slot.getRoomNumber() != null) {
             appointment.setRoomNumber(slot.getRoomNumber());
         }

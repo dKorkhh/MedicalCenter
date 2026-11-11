@@ -17,6 +17,7 @@ public class AppointmentBookedEvent {
     private String eventId;
     private String eventType;
     private String appointmentId;
+    private String timeSlotId;
     private String patientId;
     private String patientFullName;
     private String patientEmail;

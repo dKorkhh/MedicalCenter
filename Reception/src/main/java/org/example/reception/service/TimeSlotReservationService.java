@@ -8,7 +8,6 @@ import org.example.reception.model.TimeSlotStatus;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 public interface TimeSlotReservationService {
 
@@ -20,7 +19,7 @@ public interface TimeSlotReservationService {
 
     TimeSlotResponse releaseTimeSlot(String slotId, String currentUserId, boolean isAdmin);
 
-    Optional<TimeSlot> reserveSlotForAppointment(CreateAppointmentRequest request);
+    TimeSlot reserveSlotForAppointment(CreateAppointmentRequest request);
 
     void bindAppointmentIdToReservedSlot(TimeSlot slot, String appointmentId);
 
