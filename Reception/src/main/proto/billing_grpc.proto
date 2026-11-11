@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package medical.billing.v1;
+
+option java_multiple_files = true;
+option java_package = "org.example.reception.grpc.proto";
+option java_outer_classname = "BillingGrpcProto";
+
+service BillingGrpcService {
+  rpc GetInvoiceWithRetry (GrpcInvoiceLookupRequest) returns (GrpcInvoiceLookupResponse);
+
+  rpc StreamPatientBillingHistory (GrpcPatientBillingStreamRequest) returns (stream GrpcBillingHistoryEvent);
+
+  rpc CalculateServicesQuote (stream GrpcServiceQuoteItemRequest) returns (GrpcServicesQuoteSummaryResponse);
+
+  rpc LiveBillingValidation (stream GrpcLiveValidationItemRequest) returns (stream GrpcLiveValidationItemResponse);
+}
+
+message GrpcInvoiceLookupRequest {
+  string request_id = 1;
+  string invoice_id = 2;
+  int32 fail_first_attempts = 3;
+}
+
+message GrpcInvoiceLookupResponse {
+  string invoice_id = 1;
+  string appointment_id = 2;
+  string patient_id = 3;
+  string amount = 4;
+  string currency = 5;
+  string payment_status = 6;
+  int32 server_attempts_used = 7;
+  string processed_at = 8;
+}
+
+message GrpcPatientBillingStreamRequest {
+  string patient_id = 1;
+}
+
+message GrpcBillingHistoryEvent {
+  string record_type = 1;
+  string record_id = 2;
+  string appointment_id = 3;
+  string patient_id = 4;
+  string amount = 5;
+  string currency = 6;
+  string status = 7;
+  string description = 8;
+  string timestamp = 9;
+}
+
+message GrpcServiceQuoteItemRequest {
+  string patient_id = 1;
+  string service_id = 2;
+  string service_name = 3;
+  string unit_price = 4;
+  int32 quantity = 5;
+  string currency = 6;
+}
+
+message GrpcServicesQuoteSummaryResponse {
+  string patient_id = 1;
+  int32 total_items_count = 2;
+  int32 total_units_count = 3;
+  string subtotal_amount = 4;
+  string discount_amount = 5;
+  string final_total_amount = 6;
+  string currency = 7;
+  repeated string included_services = 8;
+}
+
+message GrpcLiveValidationItemRequest {
+  string step_id = 1;
+  string invoice_id = 2;
+  string service_name = 3;
+  string requested_amount = 4;
+  string currency = 5;
+}
+
+message GrpcLiveValidationItemResponse {
+  string step_id = 1;
+  string invoice_id = 2;
+  string service_name = 3;
+  bool valid = 4;
+  string validation_status = 5;
+  string running_total = 6;
+  string currency = 7;
+  string message = 8;
+}
