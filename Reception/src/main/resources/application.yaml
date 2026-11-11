@@ -18,6 +18,25 @@ spring:
     bootstrap-servers: "${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}"
     template:
       observation-enabled: true
+  grpc:
+    client:
+      channel:
+        billing:
+          target: ${BILLING_GRPC_TARGET:dns:///localhost:9090}
+          default:
+            load-balancing-policy: round_robin
+            deadline: 5s
+          service-config:
+            method:
+              - name:
+                  - service: medical.billing.v1.BillingGrpcService
+                    method: GetInvoiceWithRetry
+                retry:
+                  max-attempts: 4
+                  initial-backoff: 100ms
+                  max-backoff: 1s
+                  backoff-multiplier: 2.0
+                  retryable-status-codes: UNAVAILABLE
   mvc:
     problemdetails:
       enabled: true
