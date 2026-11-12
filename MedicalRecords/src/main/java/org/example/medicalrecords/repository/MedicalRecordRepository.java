@@ -14,4 +14,6 @@ public interface MedicalRecordRepository extends MongoRepository<MedicalRecord, 
     List<MedicalRecord> findByDoctorId(String doctorId);
 
     List<MedicalRecord> findByAppointmentId(String appointmentId);
+
+    boolean existsByAppointmentId(String appointmentId);
 }

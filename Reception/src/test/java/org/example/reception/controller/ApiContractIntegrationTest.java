@@ -3,7 +3,10 @@ package org.example.reception.controller;
 import org.example.reception.filter.CorrelationIdFilter;
 import org.example.reception.idempotency.IdempotencyStore;
 import org.example.reception.model.Appointment;
+import org.example.reception.model.TimeSlot;
+import org.example.reception.model.TimeSlotStatus;
 import org.example.reception.repository.AppointmentRepository;
+import org.example.reception.repository.TimeSlotRepository;
 import org.example.reception.support.InMemoryIdempotencyStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,7 +45,7 @@ class ApiContractIntegrationTest {
 
     private static final String BODY = """
             {"patientId":"p1","patientFullName":"Ivan Petrenko","doctorId":"d1","doctorFullName":"Dr. Koval",
-             "appointmentDateTime":"2030-01-01T10:00:00","roomNumber":"12"}""";
+             "timeSlotId":"slot-1","appointmentDateTime":"2030-01-01T10:00:00","roomNumber":"12"}""";
 
     @TestConfiguration
     static class TestConfig {
@@ -58,6 +62,8 @@ class ApiContractIntegrationTest {
     private CorrelationIdFilter correlationIdFilter;
     @MockitoBean
     private AppointmentRepository repository;
+    @MockitoBean
+    private TimeSlotRepository timeSlotRepository;
 
     private MockMvc mockMvc;
 
@@ -68,6 +74,17 @@ class ApiContractIntegrationTest {
                 .addFilters(correlationIdFilter)
                 .defaultRequest(get("/").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .build();
+
+        when(timeSlotRepository.findById("slot-1")).thenReturn(Optional.of(TimeSlot.builder()
+                .id("slot-1")
+                .doctorId("d1")
+                .startTime(LocalDateTime.parse("2030-01-01T10:00:00"))
+                .endTime(LocalDateTime.parse("2030-01-01T10:30:00"))
+                .roomNumber("12")
+                .status(TimeSlotStatus.AVAILABLE)
+                .version(0L)
+                .build()));
+        when(timeSlotRepository.save(any(TimeSlot.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test

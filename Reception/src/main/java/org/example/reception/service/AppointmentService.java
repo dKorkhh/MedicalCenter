@@ -2,6 +2,7 @@ package org.example.reception.service;
 
 import org.example.reception.dto.AppointmentDetailsResponse;
 import org.example.reception.dto.AppointmentResponse;
+import org.example.reception.dto.CompleteAppointmentRequest;
 import org.example.reception.dto.CreateAppointmentRequest;
 
 import java.util.List;
@@ -11,6 +12,8 @@ public interface AppointmentService {
     AppointmentResponse scheduleAppointment(CreateAppointmentRequest request);
 
     AppointmentResponse cancelAppointment(String id, String cancelledBy, String reason);
+
+    AppointmentResponse completeAppointment(String id, CompleteAppointmentRequest request);
 
     AppointmentResponse getAppointmentById(String id);
 

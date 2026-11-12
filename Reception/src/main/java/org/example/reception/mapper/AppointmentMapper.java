@@ -23,6 +23,7 @@ public interface AppointmentMapper {
     @Mapping(target = "cancelledBy", ignore = true)
     @Mapping(target = "cancellationReason", ignore = true)
     @Mapping(target = "cancelledAt", ignore = true)
+    @Mapping(target = "completedAt", ignore = true)
     @Mapping(target = "createdAt", expression = "java(LocalDateTime.now())")
     Appointment toEntity(CreateAppointmentRequest request);
 
@@ -33,6 +34,7 @@ public interface AppointmentMapper {
     @Mapping(target = "eventId", expression = "java(UUID.randomUUID().toString())")
     @Mapping(target = "eventType", constant = "APPOINTMENT_BOOKED")
     @Mapping(target = "appointmentId", source = "appointment.id")
+    @Mapping(target = "timeSlotId", source = "appointment.timeSlotId")
     @Mapping(target = "patientId", source = "appointment.patientId")
     @Mapping(target = "patientFullName", source = "appointment.patientFullName")
     @Mapping(target = "patientEmail", expression = "java(resolvePatientEmail(request, appointment))")
