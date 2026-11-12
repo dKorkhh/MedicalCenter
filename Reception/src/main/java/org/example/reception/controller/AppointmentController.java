@@ -7,6 +7,7 @@ import org.example.reception.client.dto.InvoiceDto;
 import org.example.reception.dto.AppointmentDetailsResponse;
 import org.example.reception.dto.AppointmentResponse;
 import org.example.reception.dto.CancelAppointmentRequest;
+import org.example.reception.dto.CompleteAppointmentRequest;
 import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.idempotency.IdempotencyService;
 import org.example.reception.idempotency.IdempotentResult;
@@ -79,6 +80,14 @@ public class AppointmentController {
             @PathVariable String id,
             @RequestBody(required = false) CancelAppointmentRequest request) {
         return ResponseEntity.ok(appointmentAccessService.cancelAppointmentVisibleToCurrentUser(id, request));
+    }
+
+    @PostMapping("/{id}/complete")
+    @PreAuthorize(RoleExpressions.DOCTOR_OR_ADMIN)
+    public ResponseEntity<AppointmentResponse> completeAppointment(
+            @PathVariable String id,
+            @Valid @RequestBody CompleteAppointmentRequest request) {
+        return ResponseEntity.ok(appointmentAccessService.completeAppointmentVisibleToDoctorOrAdmin(id, request));
     }
 
     @GetMapping("/{id}")

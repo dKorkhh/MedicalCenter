@@ -31,5 +31,6 @@ public class Appointment {
     private String cancelledBy;
     private String cancellationReason;
     private LocalDateTime cancelledAt;
+    private LocalDateTime completedAt;
     private LocalDateTime createdAt;
 }

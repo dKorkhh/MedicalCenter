@@ -23,6 +23,7 @@ public interface AppointmentMapper {
     @Mapping(target = "cancelledBy", ignore = true)
     @Mapping(target = "cancellationReason", ignore = true)
     @Mapping(target = "cancelledAt", ignore = true)
+    @Mapping(target = "completedAt", ignore = true)
     @Mapping(target = "createdAt", expression = "java(LocalDateTime.now())")
     Appointment toEntity(CreateAppointmentRequest request);
 

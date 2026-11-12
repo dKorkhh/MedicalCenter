@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.reception.dto.AppointmentDetailsResponse;
 import org.example.reception.dto.AppointmentResponse;
 import org.example.reception.dto.CancelAppointmentRequest;
+import org.example.reception.dto.CompleteAppointmentRequest;
 import org.example.reception.dto.CreateAppointmentRequest;
 import org.example.reception.security.CurrentUserProvider;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,12 @@ public class AppointmentAccessService {
         verifyCurrentUserCanViewAppointment(appointment);
         String reason = request != null ? request.reason() : null;
         return appointmentService.cancelAppointment(id, resolveCancelledByRole(), reason);
+    }
+
+    public AppointmentResponse completeAppointmentVisibleToDoctorOrAdmin(String id, CompleteAppointmentRequest request) {
+        AppointmentResponse appointment = appointmentService.getAppointmentById(id);
+        verifyCurrentUserCanCompleteAppointment(appointment);
+        return appointmentService.completeAppointment(id, request);
     }
 
     public List<AppointmentResponse> getAppointmentsVisibleToCurrentUser(String requestedPatientId) {
@@ -85,6 +92,15 @@ public class AppointmentAccessService {
     private void verifyCurrentUserCanViewAppointment(AppointmentResponse appointment) {
         if (!isAppointmentVisibleToCurrentUser(appointment)) {
             throw new AccessDeniedException("Appointment " + appointment.id() + " does not belong to the current user");
+        }
+    }
+
+    private void verifyCurrentUserCanCompleteAppointment(AppointmentResponse appointment) {
+        String currentUserId = currentUserProvider.currentUserId();
+        boolean canComplete = currentUserProvider.isAdmin()
+                || (currentUserProvider.isDoctor() && currentUserId.equals(appointment.doctorId()));
+        if (!canComplete) {
+            throw new AccessDeniedException("Only the assigned doctor or an administrator can complete appointment " + appointment.id());
         }
     }
 

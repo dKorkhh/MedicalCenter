@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class CurrentUserProvider {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_DOCTOR = "ROLE_DOCTOR";
 
     public String currentUserId() {
         return requireAuthentication().getName();
@@ -19,6 +20,12 @@ public class CurrentUserProvider {
         return requireAuthentication().getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(ROLE_ADMIN::equals);
+    }
+
+    public boolean isDoctor() {
+        return requireAuthentication().getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(ROLE_DOCTOR::equals);
     }
 
     private Authentication requireAuthentication() {

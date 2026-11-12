@@ -19,6 +19,7 @@ public record AppointmentResponse(
         String cancelledBy,
         String cancellationReason,
         LocalDateTime cancelledAt,
+        LocalDateTime completedAt,
         LocalDateTime createdAt
 ) {
 }
