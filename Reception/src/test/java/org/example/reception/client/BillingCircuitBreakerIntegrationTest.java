@@ -45,6 +45,9 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = {
         "spring.data.mongodb.auto-index-creation=false",
+        "app.outbox.publisher.enabled=false",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration",
+        "billing.client.read-timeout-ms=1500",
         "billing.resilience.retry.wait-duration-ms=10",
         "billing.resilience.bulkhead.max-concurrent-calls=2"
 })
@@ -82,6 +85,33 @@ class BillingCircuitBreakerIntegrationTest {
 
     private int requestsTo(String path) {
         return wm.findAll(getRequestedFor(urlPathEqualTo(path))).size();
+    }
+
+    @Test
+    void whenDownstreamSlow_thenCircuitBreakerOpensAndFallbackUsed() {
+        String path = "/api/invoices/inv-slow-timeout";
+        wm.stubFor(get(urlPathEqualTo(path)).willReturn(aResponse()
+                .withFixedDelay(2000)
+                .withHeader("Content-Type", "application/json")
+                .withBody(INVOICE_JSON.formatted("inv-slow-timeout"))));
+
+        for (int i = 0; i < 4; i++) {
+            InvoiceDto response = adapter.getInvoice("inv-slow-timeout", 0);
+            assertThat(response.paymentStatus()).isEqualTo("UNAVAILABLE_TEMPORARILY");
+            assertThat(response.amount()).isEqualByComparingTo(BigDecimal.ZERO);
+            assertThat(response.id()).isEqualTo("inv-slow-timeout");
+        }
+
+        assertThat(circuitBreaker.getState()).isEqualTo(CircuitBreaker.State.OPEN);
+        int requestsWhenOpened = requestsTo(path);
+
+        for (int i = 0; i < 3; i++) {
+            InvoiceDto shortCircuited = adapter.getInvoice("inv-slow-timeout", 0);
+            assertThat(shortCircuited.paymentStatus()).isEqualTo("UNAVAILABLE_TEMPORARILY");
+            assertThat(shortCircuited.amount()).isEqualByComparingTo(BigDecimal.ZERO);
+        }
+        assertThat(requestsTo(path)).isEqualTo(requestsWhenOpened);
+        assertThat(circuitBreaker.getMetrics().getNumberOfNotPermittedCalls()).isGreaterThanOrEqualTo(3);
     }
 
     @Test
@@ -178,7 +208,7 @@ class BillingCircuitBreakerIntegrationTest {
     void bulkheadLimitsConcurrentCallsAndRejectedCallsGetFallback() throws Exception {
         String path = "/api/invoices/slow";
         wm.stubFor(get(urlPathEqualTo(path)).willReturn(aResponse()
-                .withFixedDelay(1000)
+                .withFixedDelay(500)
                 .withHeader("Content-Type", "application/json")
                 .withBody(INVOICE_JSON.formatted("slow"))));
 
@@ -210,9 +240,9 @@ class BillingCircuitBreakerIntegrationTest {
         assertThat(real).isGreaterThanOrEqualTo(1);
         assertThat(fallback).isGreaterThanOrEqualTo(1);
         assertThat(real + fallback).isEqualTo(threads);
-        assertThat(requestsTo(path)).isEqualTo((int) real);          // відхилені виклики не дійшли до Billing
+        assertThat(requestsTo(path)).isEqualTo((int) real);
         assertThat(bulkhead.getMetrics().getAvailableConcurrentCalls()).isEqualTo(2);
-        assertThat(circuitBreaker.getState()).isEqualTo(CircuitBreaker.State.CLOSED); // відмова Bulkhead не відкриває ланцюг
+        assertThat(circuitBreaker.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
     }
 
     @Test
@@ -226,7 +256,7 @@ class BillingCircuitBreakerIntegrationTest {
 
         assertThat(invoices).extracting(InvoiceDto::id).containsExactly("inv-1", "inv-2", "inv-3");
         wm.verify(exactly(1), postRequestedFor(urlPathEqualTo("/api/invoices/batch"))
-                .withRequestBody(equalToJson("[\"inv-1\",\"inv-2\",\"inv-3\"]")));   // дублікати прибрано
+                .withRequestBody(equalToJson("[\"inv-1\",\"inv-2\",\"inv-3\"]")));
     }
 
     @Test
@@ -247,7 +277,7 @@ class BillingCircuitBreakerIntegrationTest {
 
         assertThat(details).hasSize(5);
         assertThat(details).allSatisfy(d -> assertThat(d.invoice().paymentStatus()).isEqualTo("PAID"));
-        wm.verify(exactly(1), postRequestedFor(urlPathEqualTo("/api/invoices/batch")));   // 1 запит замість 5
+        wm.verify(exactly(1), postRequestedFor(urlPathEqualTo("/api/invoices/batch")));
         assertThat(wm.findAll(getRequestedFor(urlPathEqualTo("/api/invoices/inv-1")))).isEmpty();
     }
 
