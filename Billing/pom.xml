@@ -128,6 +128,12 @@
 			<version>1.6.3</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>au.com.dius.pact.provider</groupId>
+			<artifactId>junit5</artifactId>
+			<version>4.6.14</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

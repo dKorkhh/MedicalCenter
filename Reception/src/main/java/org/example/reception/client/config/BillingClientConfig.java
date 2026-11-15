@@ -20,6 +20,9 @@ public class BillingClientConfig {
     @Value("${billing.service.url}")
     private String billingServiceUrl;
 
+    @Value("${billing.client.read-timeout-ms:3000}")
+    private long readTimeoutMs;
+
     @Bean
     public JdkClientHttpRequestFactory jdkClientHttpRequestFactory() {
         HttpClient httpClient = HttpClient.newBuilder()
@@ -27,7 +30,7 @@ public class BillingClientConfig {
                 .build();
 
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofSeconds(3));
+        requestFactory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
         return requestFactory;
     }
 

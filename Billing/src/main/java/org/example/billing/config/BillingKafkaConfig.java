@@ -27,6 +27,9 @@ public class BillingKafkaConfig {
     @Value("${spring.kafka.consumer.group-id:billing-service-group}")
     private String groupId;
 
+    @Value("${spring.kafka.listener.auto-startup:true}")
+    private boolean autoStartup;
+
     @Bean
     public ConsumerFactory<String, AppointmentCancelledEvent> billingCancelledAppointmentConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -48,6 +51,7 @@ public class BillingKafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, AppointmentCancelledEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(billingCancelledAppointmentConsumerFactory());
+        factory.setAutoStartup(autoStartup);
         return factory;
     }
 
@@ -72,6 +76,7 @@ public class BillingKafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, AppointmentCompletedEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(billingCompletedAppointmentConsumerFactory());
+        factory.setAutoStartup(autoStartup);
         return factory;
     }
 }
