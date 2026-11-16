@@ -13,3 +13,6 @@ spec:
     - name: http
       port: 8082
       targetPort: 8082
+    - name: grpc
+      port: 9090
+      targetPort: 9090

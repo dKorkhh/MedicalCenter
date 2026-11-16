@@ -17,6 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.example.reception.client.DownstreamProblemException;
+import io.grpc.StatusRuntimeException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
@@ -85,6 +86,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleAuthenticationFailure(AuthenticationException ex) {
         return ProblemDetails.of(HttpStatus.UNAUTHORIZED, "unauthorized",
                 "Authentication required", "A valid bearer token is required to access this resource.");
+    }
+
+    @ExceptionHandler(StatusRuntimeException.class)
+    public ProblemDetail handleGrpcStatus(StatusRuntimeException ex) {
+        HttpStatus status = switch (ex.getStatus().getCode()) {
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case DEADLINE_EXCEEDED -> HttpStatus.GATEWAY_TIMEOUT;
+            case PERMISSION_DENIED -> HttpStatus.FORBIDDEN;
+            case UNAUTHENTICATED -> HttpStatus.UNAUTHORIZED;
+            case INVALID_ARGUMENT -> HttpStatus.BAD_REQUEST;
+            default -> HttpStatus.BAD_GATEWAY;
+        };
+        ProblemDetail pd = ProblemDetails.of(status, "grpc-downstream-error",
+                "Billing gRPC service error", ex.getStatus().getDescription() != null ? ex.getStatus().getDescription() : ex.getMessage());
+        pd.setProperty("downstreamService", "billing-service");
+        pd.setProperty("grpcStatusCode", ex.getStatus().getCode().name());
+        return pd;
     }
 
     @ExceptionHandler(Exception.class)

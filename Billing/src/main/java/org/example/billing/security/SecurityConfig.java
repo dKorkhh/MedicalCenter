@@ -1,7 +1,10 @@
 package org.example.billing.security;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.grpc.server.security.AuthenticationProcessInterceptor;
+import org.springframework.grpc.server.security.GrpcSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -36,5 +39,12 @@ public class SecurityConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(new KeycloakRealmRoleConverter());
         return converter;
+    }
+
+    @Bean
+    @ConditionalOnBean(GrpcSecurity.class)
+    public AuthenticationProcessInterceptor grpcAuthenticationProcessInterceptor(GrpcSecurity grpc) throws Exception {
+        return grpc.authorizeRequests(requests -> requests.allRequests().permitAll())
+                .build();
     }
 }

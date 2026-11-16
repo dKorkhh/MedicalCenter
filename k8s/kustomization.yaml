@@ -20,6 +20,8 @@ resources:
   - medical-records-service.yaml
   - notification-deployment.yaml
   - notification-service.yaml
+  - keycloak-configmap.yaml
+  - keycloak.yaml
   - kafka.yaml
   - ingress.yaml
   - network-policies.yaml

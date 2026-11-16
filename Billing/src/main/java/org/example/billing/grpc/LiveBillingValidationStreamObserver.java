@@ -25,21 +25,28 @@ public class LiveBillingValidationStreamObserver implements StreamObserver<GrpcL
 
     @Override
     public void onNext(GrpcLiveValidationItemRequest item) {
-        log.info("[gRPC Server][BidiStreaming LiveBillingValidation] Validating stepId={}, invoiceId={}, serviceName={}, amount={}",
-                item.getStepId(), item.getInvoiceId(), item.getServiceName(), item.getRequestedAmount());
+        try {
+            log.info("[gRPC Server][BidiStreaming LiveBillingValidation] Validating stepId={}, invoiceId={}, serviceName={}, amount={}",
+                    item.getStepId(), item.getInvoiceId(), item.getServiceName(), item.getRequestedAmount());
 
-        BigDecimal amount = billingGrpcMapper.parseAmount(item.getRequestedAmount());
-        boolean valid = amount.compareTo(BigDecimal.ZERO) > 0;
-        if (valid) {
-            runningTotal = runningTotal.add(amount).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal amount = billingGrpcMapper.parseAmount(item.getRequestedAmount());
+            boolean valid = amount.compareTo(BigDecimal.ZERO) > 0;
+            if (valid) {
+                runningTotal = runningTotal.add(amount).setScale(2, RoundingMode.HALF_UP);
+            }
+
+            Optional<Invoice> matchedInvoice = findMatchedInvoice(item, valid);
+            String status = resolveValidationStatus(valid, matchedInvoice.orElse(null));
+            String message = resolveValidationMessage(item, valid, matchedInvoice.orElse(null));
+
+            responseObserver.onNext(billingGrpcMapper.toLiveValidationResponse(
+                    item, valid, status, runningTotal, message));
+        } catch (Exception ex) {
+            log.error("[gRPC Server][BidiStreaming LiveBillingValidation] Validation error: {}", ex.getMessage(), ex);
+            responseObserver.onError(io.grpc.Status.INTERNAL
+                    .withDescription("Validation processing failed: " + ex.getMessage())
+                    .asRuntimeException());
         }
-
-        Optional<Invoice> matchedInvoice = findMatchedInvoice(item, valid);
-        String status = resolveValidationStatus(valid, matchedInvoice.orElse(null));
-        String message = resolveValidationMessage(item, valid, matchedInvoice.orElse(null));
-
-        responseObserver.onNext(billingGrpcMapper.toLiveValidationResponse(
-                item, valid, status, runningTotal, message));
     }
 
     @Override
