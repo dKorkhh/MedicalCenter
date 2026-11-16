@@ -26,8 +26,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:noreply@medicalcenter.com}
+    password: ${MAIL_PASSWORD:secret}
     properties:
       mail:
         smtp:
@@ -71,6 +71,8 @@ management:
           include: readinessState,diskSpace
       show-details: when-authorized
   health:
+    mail:
+      enabled: false
     liveness:
       state:
         enabled: true

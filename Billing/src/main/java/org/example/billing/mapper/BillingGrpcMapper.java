@@ -82,20 +82,23 @@ public interface BillingGrpcMapper {
     @Mapping(target = "timestamp", expression = "java(LocalDateTime.now().toString())")
     GrpcBillingHistoryEvent toEmptyAccountSnapshotEvent(String patientId);
 
-    @Mapping(target = "stepId", expression = "java(nullSafe(item.getStepId()))")
-    @Mapping(target = "invoiceId", expression = "java(nullSafe(item.getInvoiceId()))")
-    @Mapping(target = "serviceName", expression = "java(nullSafe(item.getServiceName()))")
-    @Mapping(target = "valid", source = "valid")
-    @Mapping(target = "validationStatus", expression = "java(nullSafe(validationStatus))")
-    @Mapping(target = "runningTotal", expression = "java(formatAmount(runningTotal))")
-    @Mapping(target = "currency", expression = "java(defaultCurrency(item.getCurrency()))")
-    @Mapping(target = "message", expression = "java(nullSafe(message))")
-    GrpcLiveValidationItemResponse toLiveValidationResponse(
+    default GrpcLiveValidationItemResponse toLiveValidationResponse(
             GrpcLiveValidationItemRequest item,
             boolean valid,
             String validationStatus,
             BigDecimal runningTotal,
-            String message);
+            String message) {
+        return GrpcLiveValidationItemResponse.newBuilder()
+                .setStepId(nullSafe(item != null ? item.getStepId() : null))
+                .setInvoiceId(nullSafe(item != null ? item.getInvoiceId() : null))
+                .setServiceName(nullSafe(item != null ? item.getServiceName() : null))
+                .setValid(valid)
+                .setValidationStatus(nullSafe(validationStatus))
+                .setRunningTotal(formatAmount(runningTotal))
+                .setCurrency(defaultCurrency(item != null ? item.getCurrency() : null))
+                .setMessage(nullSafe(message))
+                .build();
+    }
 
     default GrpcServicesQuoteSummaryResponse toQuoteSummaryResponse(
             String patientId,

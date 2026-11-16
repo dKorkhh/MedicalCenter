@@ -5,7 +5,7 @@ COPY mvnw pom.xml ./
 RUN sed -i 's/\r$//' ./mvnw && chmod +x ./mvnw
 RUN ./mvnw dependency:go-offline -B || true
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -Dmaven.test.skip=true
 
 FROM eclipse-temurin:25-jre
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*

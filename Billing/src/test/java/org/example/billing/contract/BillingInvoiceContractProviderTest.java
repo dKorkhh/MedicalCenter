@@ -39,7 +39,9 @@ import static org.mockito.Mockito.when;
 @PactFolder("../pacts")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "spring.data.mongodb.auto-index-creation=false",
-        "spring.kafka.listener.auto-startup=false"
+        "spring.kafka.listener.auto-startup=false",
+        "spring.grpc.server.port=0",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
 })
 public class BillingInvoiceContractProviderTest {
 
