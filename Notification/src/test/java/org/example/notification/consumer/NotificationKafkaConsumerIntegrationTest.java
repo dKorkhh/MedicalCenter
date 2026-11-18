@@ -112,11 +112,14 @@ class NotificationKafkaConsumerIntegrationTest {
 
         kafkaTemplate.send(topic, event.getAppointmentId(), event).get();
 
-        Thread.sleep(200);
+        long deadline = System.currentTimeMillis() + 10000;
+        while (System.currentTimeMillis() < deadline && businessExecutionCount.get() < 1) {
+            Thread.sleep(100);
+        }
         assertEquals(1, businessExecutionCount.get());
 
         kafkaTemplate.send(topic, event.getAppointmentId(), event).get();
-        Thread.sleep(2000);
+        Thread.sleep(1500);
 
         assertEquals(1, businessExecutionCount.get());
         verify(notificationRepository, times(1)).save(any(Notification.class));

@@ -9,7 +9,6 @@ import org.example.notification.model.Notification;
 import org.example.notification.model.ProcessedMessage;
 import org.example.notification.repository.NotificationRepository;
 import org.example.notification.repository.ProcessedMessageRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

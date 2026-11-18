@@ -1,7 +1,6 @@
 package org.example.reception.exception;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.web.ErrorResponseException;
 
 public class ApiProblemException extends ErrorResponseException {
