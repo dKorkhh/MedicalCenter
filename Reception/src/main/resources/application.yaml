@@ -123,6 +123,13 @@ resilience4j:
       billingClient:
         maxConcurrentCalls: 10
         maxWaitDuration: 0ms
+  ratelimiter:
+    instances:
+      apiGateway:
+        registerHealthIndicator: true
+        limitForPeriod: ${RATE_LIMIT_FOR_PERIOD:50}
+        limitRefreshPeriod: ${RATE_LIMIT_REFRESH_PERIOD:1s}
+        timeoutDuration: 0ms
 
 app:
   kafka:

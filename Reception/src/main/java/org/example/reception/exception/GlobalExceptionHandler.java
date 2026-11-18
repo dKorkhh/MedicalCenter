@@ -16,6 +16,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import org.example.reception.client.DownstreamProblemException;
 import io.grpc.StatusRuntimeException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -60,6 +61,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleBulkheadFull(BulkheadFullException ex) {
         ProblemDetail pd = ProblemDetails.of(HttpStatus.TOO_MANY_REQUESTS, "bulkhead-full",
                 "Too many concurrent calls", "Concurrent call limit to Billing service is reached.");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).header(HttpHeaders.RETRY_AFTER, "1").body(pd);
+    }
+
+    @ExceptionHandler(RequestNotPermitted.class)
+    public ResponseEntity<ProblemDetail> handleRateLimitExceeded(RequestNotPermitted ex) {
+        ProblemDetail pd = ProblemDetails.of(HttpStatus.TOO_MANY_REQUESTS, "rate-limit-exceeded",
+                "Rate limit exceeded", "Too many requests. Please try again later.");
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).header(HttpHeaders.RETRY_AFTER, "1").body(pd);
     }
 

@@ -33,3 +33,4 @@ resources:
   - promtail.yaml
   - otel-collector.yaml
   - grafana.yaml
+  - grafana-dashboard.yaml

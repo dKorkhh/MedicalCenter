@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/name: medical-center
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "2"
 spec:
   ingressClassName: nginx
   rules:
