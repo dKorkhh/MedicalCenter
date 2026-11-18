@@ -1,5 +1,6 @@
 package org.example.medicalrecords.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.medicalrecords.dto.CreateMedicalRecordRequest;
 import org.example.medicalrecords.dto.MedicalRecordResponse;
@@ -29,7 +30,7 @@ public class MedicalRecordController {
 
     @PostMapping
     @PreAuthorize(RoleExpressions.DOCTOR_OR_ADMIN)
-    public ResponseEntity<MedicalRecordResponse> createMedicalRecord(@RequestBody CreateMedicalRecordRequest request) {
+    public ResponseEntity<MedicalRecordResponse> createMedicalRecord(@Valid @RequestBody CreateMedicalRecordRequest request) {
         CreateMedicalRecordRequest ownedRequest = medicalRecordAccessService.bindRequestToCurrentDoctor(request);
         MedicalRecordResponse createdRecord = medicalRecordService.createMedicalRecord(ownedRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRecord);

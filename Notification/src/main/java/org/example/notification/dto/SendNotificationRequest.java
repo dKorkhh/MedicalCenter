@@ -1,13 +1,15 @@
 package org.example.notification.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
 @Builder
 public record SendNotificationRequest(
-        String recipientEmail,
+        @NotBlank @Email String recipientEmail,
         String recipientPhone,
-        String notificationType,
-        String messageTitle,
-        String messageContent
+        @NotBlank String notificationType,
+        @NotBlank String messageTitle,
+        @NotBlank String messageContent
 ) {
 }

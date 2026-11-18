@@ -1,5 +1,6 @@
 package org.example.notification.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.notification.security.RoleExpressions;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,7 +30,7 @@ public class NotificationController {
     private final org.example.notification.repository.NotificationDeadLetterRepository notificationDeadLetterRepository;
 
     @PostMapping
-    public ResponseEntity<NotificationResponse> sendNotification(@RequestBody SendNotificationRequest request) {
+    public ResponseEntity<NotificationResponse> sendNotification(@Valid @RequestBody SendNotificationRequest request) {
         NotificationResponse createdNotification = notificationService.sendNotification(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdNotification);
     }
