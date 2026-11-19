@@ -1,13 +1,14 @@
 package org.example.medicalrecords.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
 @Builder(toBuilder = true)
 public record CreateMedicalRecordRequest(
-        String patientId,
+        @NotBlank String patientId,
         String doctorId,
-        String appointmentId,
-        String diagnosis,
+        @NotBlank String appointmentId,
+        @NotBlank String diagnosis,
         String prescription,
         String doctorNotes
 ) {
