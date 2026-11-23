@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
         "spring.grpc.server.port=0",
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
 })
-public class BillingInvoiceContractProviderTest {
+class BillingInvoiceContractProviderTest {
 
     @LocalServerPort
     private int port;
@@ -56,7 +56,7 @@ public class BillingInvoiceContractProviderTest {
 
         @Bean
         @Order(Ordered.HIGHEST_PRECEDENCE)
-        public SecurityFilterChain contractTestSecurityFilterChain(HttpSecurity http) throws Exception {
+        public SecurityFilterChain contractTestSecurityFilterChain(HttpSecurity http) {
             return http
                     .securityMatcher("/api/invoices/**")
                     .csrf(AbstractHttpConfigurer::disable)

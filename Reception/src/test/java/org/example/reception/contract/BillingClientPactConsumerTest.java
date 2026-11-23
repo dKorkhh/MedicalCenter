@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "BillingService", pactVersion = PactSpecVersion.V3)
-public class BillingClientPactConsumerTest {
+class BillingClientPactConsumerTest {
 
     private static final InvoiceDto EXPECTED_INVOICE = InvoiceDto.builder()
             .id("inv-100")
@@ -46,7 +46,7 @@ public class BillingClientPactConsumerTest {
             .build();
 
     @BeforeAll
-    public static void setPactRootDirectory() {
+    static void setPactRootDirectory() {
         System.setProperty("pact.rootDir", "../pacts");
     }
 
@@ -104,7 +104,7 @@ public class BillingClientPactConsumerTest {
 
     @Test
     @PactTestFor(pactMethod = "createInvoiceByIdPact")
-    public void shouldSuccessfullyRetrieveInvoiceByIdMatchingContract(MockServer mockServer) {
+    void shouldSuccessfullyRetrieveInvoiceByIdMatchingContract(MockServer mockServer) {
         BillingClient billingClient = createBillingClient(mockServer.getUrl());
 
         InvoiceDto invoice = billingClient.getInvoiceById("inv-100", 0);
@@ -116,7 +116,7 @@ public class BillingClientPactConsumerTest {
 
     @Test
     @PactTestFor(pactMethod = "createBatchInvoicesPact")
-    public void shouldSuccessfullyRetrieveInvoicesBatchMatchingContract(MockServer mockServer) {
+    void shouldSuccessfullyRetrieveInvoicesBatchMatchingContract(MockServer mockServer) {
         BillingClient billingClient = createBillingClient(mockServer.getUrl());
 
         List<InvoiceDto> invoices = billingClient.getInvoicesBatch(List.of("inv-100"));

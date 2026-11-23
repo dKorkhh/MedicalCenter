@@ -148,7 +148,7 @@ public interface BillingGrpcMapper {
         }
         try {
             return new BigDecimal(rawAmount);
-        } catch (NumberFormatException ex) {
+        } catch (NumberFormatException _) {
             return BigDecimal.ZERO;
         }
     }

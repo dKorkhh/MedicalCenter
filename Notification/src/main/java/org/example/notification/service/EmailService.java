@@ -29,7 +29,7 @@ public class EmailService {
             log.info("Email successfully sent to {}", to);
         } catch (Exception e) {
             log.error("Failed to send email to {}", to, e);
-            throw new RuntimeException("Email sending failed", e);
+            throw new IllegalArgumentException("Email sending failed", e);
         }
     }
 }

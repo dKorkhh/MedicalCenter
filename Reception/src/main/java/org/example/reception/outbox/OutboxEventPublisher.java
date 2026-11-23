@@ -57,12 +57,12 @@ public class OutboxEventPublisher {
         String key = message.getAggregateId() != null ? message.getAggregateId() : message.getId();
 
         try {
-            ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, message.getPayload());
+            ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, key, message.getPayload());
             if (message.getTraceparent() != null && !message.getTraceparent().isBlank()) {
-                record.headers().add("traceparent", message.getTraceparent().getBytes(StandardCharsets.UTF_8));
+                producerRecord.headers().add("traceparent", message.getTraceparent().getBytes(StandardCharsets.UTF_8));
             }
 
-            kafkaTemplate.send(record)
+            kafkaTemplate.send(producerRecord)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
                             message.setStatus(OutboxStatus.PROCESSED);
