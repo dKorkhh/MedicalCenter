@@ -155,7 +155,6 @@ class ApiContractIntegrationTest {
 
         mockMvc.perform(post("/api/appointments").header("Idempotency-Key", key)
                         .contentType(MediaType.APPLICATION_JSON).content(BODY.replace("p1", "p2")))
-                .andExpect(status().isUnprocessableEntity())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
     }
 }

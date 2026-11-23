@@ -54,7 +54,7 @@ class BillingClientTest {
                 try {
                     log.info("[Mock Server] Delay of 4000ms...");
                     Thread.sleep(4000);
-                } catch (InterruptedException e) {
+                } catch (InterruptedException _) {
                     Thread.currentThread().interrupt();
                 }
             }

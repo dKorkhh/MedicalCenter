@@ -17,11 +17,11 @@ public class MongoIdempotencyStore implements IdempotencyStore {
     private final MongoTemplate mongoTemplate;
 
     @Override
-    public boolean tryAcquire(IdempotencyRecord record) {
+    public boolean tryAcquire(IdempotencyRecord idempotencyRecord) {
         try {
-            mongoTemplate.insert(record);
+            mongoTemplate.insert(idempotencyRecord);
             return true;
-        } catch (DuplicateKeyException e) {
+        } catch (DuplicateKeyException _) {
             return false;
         }
     }

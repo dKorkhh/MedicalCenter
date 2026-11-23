@@ -12,6 +12,8 @@ import java.time.Instant;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final String URL_LINK = "https://datatracker.ietf.org/doc/html/rfc9457";
+    private static final String PROPERTY = "timestamp";
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidationException(MethodArgumentNotValidException ex) {
@@ -21,8 +23,8 @@ public class GlobalExceptionHandler {
                 .orElse("Validation failed");
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         problemDetail.setTitle("Validation Failed");
-        problemDetail.setType(URI.create("https://datatracker.ietf.org/doc/html/rfc9457"));
-        problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setType(URI.create(URL_LINK));
+        problemDetail.setProperty(PROPERTY, Instant.now());
         return problemDetail;
     }
 
@@ -30,8 +32,8 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleResponseStatusException(ResponseStatusException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(ex.getStatusCode(), ex.getReason() != null ? ex.getReason() : ex.getMessage());
         problemDetail.setTitle("Request Error");
-        problemDetail.setType(URI.create("https://datatracker.ietf.org/doc/html/rfc9457"));
-        problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setType(URI.create(URL_LINK));
+        problemDetail.setProperty(PROPERTY, Instant.now());
         return problemDetail;
     }
 
@@ -42,8 +44,8 @@ public class GlobalExceptionHandler {
                 ex.getMessage()
         );
         problemDetail.setTitle("Internal Server Error");
-        problemDetail.setType(URI.create("https://datatracker.ietf.org/doc/html/rfc9457"));
-        problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setType(URI.create(URL_LINK));
+        problemDetail.setProperty(PROPERTY, Instant.now());
         return problemDetail;
     }
 }

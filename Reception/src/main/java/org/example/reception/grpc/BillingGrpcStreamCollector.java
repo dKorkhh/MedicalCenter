@@ -119,7 +119,7 @@ public class BillingGrpcStreamCollector {
                         .withDescription("Timed out waiting for gRPC stream " + operationName)
                         .asRuntimeException();
             }
-        } catch (InterruptedException ex) {
+        } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
             throw Status.CANCELLED.withDescription("Interrupted during gRPC stream " + operationName).asRuntimeException();
         }

@@ -103,24 +103,24 @@ public class VisitRecordServiceImpl implements VisitRecordService {
         }
     }
 
-    private VisitRecordResponse mapToResponse(VisitRecord record) {
+    private VisitRecordResponse mapToResponse(VisitRecord visitRecord) {
         return VisitRecordResponse.builder()
-                .id(record.getId())
-                .eventId(record.getEventId())
-                .appointmentId(record.getAppointmentId())
-                .timeSlotId(record.getTimeSlotId())
-                .patientId(record.getPatientId())
-                .patientFullName(record.getPatientFullName())
-                .patientEmail(record.getPatientEmail())
-                .doctorId(record.getDoctorId())
-                .doctorFullName(record.getDoctorFullName())
-                .serviceName(record.getServiceName())
-                .diagnosis(record.getDiagnosis())
-                .prescription(record.getPrescription())
-                .doctorNotes(record.getDoctorNotes())
-                .appointmentDateTime(record.getAppointmentDateTime())
-                .completedAt(record.getCompletedAt())
-                .createdAt(record.getCreatedAt())
+                .id(visitRecord.getId())
+                .eventId(visitRecord.getEventId())
+                .appointmentId(visitRecord.getAppointmentId())
+                .timeSlotId(visitRecord.getTimeSlotId())
+                .patientId(visitRecord.getPatientId())
+                .patientFullName(visitRecord.getPatientFullName())
+                .patientEmail(visitRecord.getPatientEmail())
+                .doctorId(visitRecord.getDoctorId())
+                .doctorFullName(visitRecord.getDoctorFullName())
+                .serviceName(visitRecord.getServiceName())
+                .diagnosis(visitRecord.getDiagnosis())
+                .prescription(visitRecord.getPrescription())
+                .doctorNotes(visitRecord.getDoctorNotes())
+                .appointmentDateTime(visitRecord.getAppointmentDateTime())
+                .completedAt(visitRecord.getCompletedAt())
+                .createdAt(visitRecord.getCreatedAt())
                 .build();
     }
 }

@@ -56,7 +56,7 @@ public class AppointmentOutboxService {
         try {
             return objectMapper.writeValueAsString(event);
         } catch (Exception ex) {
-            throw new RuntimeException("Failed to serialize outbox event: " + ex.getMessage(), ex);
+            throw new IllegalArgumentException("Failed to serialize outbox event: " + ex.getMessage(), ex);
         }
     }
 }

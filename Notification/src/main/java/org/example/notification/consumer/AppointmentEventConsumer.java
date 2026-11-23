@@ -111,7 +111,7 @@ public class AppointmentEventConsumer {
     private void verifyFailureSimulation(String eventId, String doctorId) {
         if (simulateFailure || "FAIL_SIMULATION".equals(doctorId)) {
             log.error("Artificial consumer failure triggered for eventId={}", eventId);
-            throw new RuntimeException("Artificial failure triggered for eventId=" + eventId);
+            throw new IllegalArgumentException("Artificial failure triggered for eventId=" + eventId);
         }
     }
 

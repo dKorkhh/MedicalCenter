@@ -27,9 +27,9 @@ public class VisitRecordController {
     @GetMapping("/appointment/{appointmentId}")
     @PreAuthorize(RoleExpressions.PATIENT_DOCTOR_OR_ADMIN)
     public ResponseEntity<VisitRecordResponse> getVisitRecordByAppointmentId(@PathVariable String appointmentId) {
-        VisitRecordResponse record = visitRecordService.getVisitRecordByAppointmentId(appointmentId);
-        verifyCanViewVisitRecord(record);
-        return ResponseEntity.ok(record);
+        VisitRecordResponse visitRecordResponse = visitRecordService.getVisitRecordByAppointmentId(appointmentId);
+        verifyCanViewVisitRecord(visitRecordResponse);
+        return ResponseEntity.ok(visitRecordResponse);
     }
 
     @GetMapping
@@ -52,17 +52,17 @@ public class VisitRecordController {
         return ResponseEntity.ok(visitRecordService.getVisitRecordsByPatientId(currentUserProvider.currentUserId()));
     }
 
-    private void verifyCanViewVisitRecord(VisitRecordResponse record) {
+    private void verifyCanViewVisitRecord(VisitRecordResponse visitRecordResponse) {
         if (currentUserProvider.isAdmin()) {
             return;
         }
         String currentUserId = currentUserProvider.currentUserId();
-        if (currentUserProvider.isDoctor() && currentUserId.equals(record.doctorId())) {
+        if (currentUserProvider.isDoctor() && currentUserId.equals(visitRecordResponse.doctorId())) {
             return;
         }
-        if (currentUserId.equals(record.patientId())) {
+        if (currentUserId.equals(visitRecordResponse.patientId())) {
             return;
         }
-        throw new AccessDeniedException("Access denied to visit record for appointment: " + record.appointmentId());
+        throw new AccessDeniedException("Access denied to visit record for appointment: " + visitRecordResponse.appointmentId());
     }
 }
